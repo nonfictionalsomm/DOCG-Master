@@ -25,6 +25,8 @@
             align-items: center;
             justify-content: center;
             text-align: center;
+            word-break: break-word;
+            hyphens: auto;
         }
         .btn-option:hover {
             transform: translateY(-2px);
@@ -76,7 +78,7 @@
         <div id="progress-container" class="w-full bg-gray-200 rounded-full h-4 mb-6 overflow-hidden">
             <div id="progress-bar" class="bg-green-500 h-4 rounded-full progress-bar-fill" style="width: 0%;"></div>
         </div>
-        
+       
         <div id="score-tracker" class="mb-6 text-lg flex justify-around items-center">
             <span class="font-semibold text-gray-700">Round: <span id="round-counter">0</span> / 20</span>
             <span class="font-semibold text-gray-700">Score: <span id="score">0</span></span>
@@ -86,12 +88,13 @@
         <div id="question-area">
             <p class="text-lg mb-2">You are presented with the following DOCG:</p>
             <h2 id="docg-name" class="text-2xl md:text-3xl font-bold text-red-700 mb-4 break-words"></h2>
-            <p id="question-prompt" class="text-xl font-semibold text-gray-800 mb-6"></p>
+            <p id="question-prompt" class="text-xl font-semibold text-gray-800 mb-2"></p>
+            <div id="style-counter-area" class="text-lg font-medium text-gray-600 mb-4"></div>
             <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Options will be dynamically inserted here -->
             </div>
         </div>
-        
+       
         <div id="feedback-area" class="mt-6 text-xl font-medium"></div>
 
     </div>
@@ -133,7 +136,7 @@
             <button id="next-question-btn" class="mt-8 w-full bg-red-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-800 transition-colors">Next Round</button>
         </div>
     </div>
-    
+   
     <!-- Game Over Modal -->
     <div id="win-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
@@ -1292,6 +1295,7 @@
             const studyContent = document.getElementById('study-content');
             const docgNameEl = document.getElementById('docg-name');
             const questionPromptEl = document.getElementById('question-prompt');
+            const styleCounterArea = document.getElementById('style-counter-area');
             const optionsContainer = document.getElementById('options-container');
             const feedbackArea = document.getElementById('feedback-area');
             const scoreEl = document.getElementById('score');
@@ -1307,7 +1311,8 @@
 
             // --- Game State & Config ---
             let docgData = [];
-            let allRegions = [], allSoils = [], allProducers = [];
+            let docgStylesMap = {};
+            let allRegions = [], allSoils = [], allProducers = [], allStyles = [];
             let score = 0;
             let perfectRounds = 0;
             let currentDocg = null;
@@ -1316,10 +1321,11 @@
             let roundCounter = 0;
             let gameMode = 'hard';
             let maxQuestionPart = 3;
+            let correctStylesRemaining = 0;
             const MAX_ROUNDS = 20;
 
             const modeSettings = {
-                easy:       { parts: 1, sequence: ['region'] },
+                easy:       { parts: 2, sequence: ['region', 'styles'] },
                 intermediate: { parts: 2, sequence: ['region', 'varietals'] },
                 hard:       { parts: 3, sequence: ['region', 'varietals', 'aging'] },
                 expert:     { parts: 4, sequence: ['region', 'varietals', 'aging', 'soils'] },
@@ -1335,23 +1341,32 @@
                 const table = document.querySelector("#database table");
                 const rows = table.querySelectorAll("tbody tr");
                 const data = [];
+                docgStylesMap = {};
                 rows.forEach(row => {
                     const cells = row.querySelectorAll("td");
+                    const docgName = cells[0].textContent.trim();
+                    const style = cells[2].textContent.trim();
                     data.push({
-                        name: cells[0].textContent.trim(),
+                        name: docgName,
                         region: cells[1].textContent.trim(),
-                        style: cells[2].textContent.trim(),
+                        style: style,
                         varietals: cells[3].textContent.trim(),
                         aging: cells[4].textContent.trim(),
                         soils: cells[5].textContent.trim(),
                         notes: cells[6].textContent.trim(),
                         producers: cells[7].textContent.trim(),
-                        id: `${cells[0].textContent.trim()} - ${cells[2].textContent.trim()}`
+                        id: `${docgName} - ${style}`
                     });
+                    // Group styles by DOCG name
+                    if (!docgStylesMap[docgName]) {
+                        docgStylesMap[docgName] = [];
+                    }
+                    docgStylesMap[docgName].push(style);
                 });
                 allRegions = [...new Set(data.map(d => d.region))];
                 allSoils = [...new Set(data.map(d => d.soils))];
                 allProducers = [...new Set(data.map(d => d.producers))];
+                allStyles = [...new Set(data.map(d => d.style))];
                 return data;
             }
 
@@ -1365,7 +1380,7 @@
                     [array[i], array[j]] = [array[j], array[i]];
                 }
             }
-            
+           
             /**
              * Initializes the game state, resets scores, and starts the first round.
              */
@@ -1376,13 +1391,13 @@
                 perfectRounds = 0;
                 roundCounter = 0;
                 docgData = parseData();
-                
+               
                 updateScore();
                 welcomeModal.classList.add('hidden');
                 gameContainer.classList.remove('hidden');
                 winModal.classList.add('hidden');
                 resultModal.classList.add('hidden');
-                
+               
                 nextRound();
             }
 
@@ -1395,11 +1410,11 @@
                     showGameOverScreen();
                     return;
                 }
-                
+               
                 currentDocg = docgData[Math.floor(Math.random() * docgData.length)];
                 currentQuestionPart = 1;
                 firstAttemptInRound = true;
-                
+               
                 updateScore();
                 displayQuestion();
             }
@@ -1410,12 +1425,14 @@
             function displayQuestion() {
                 feedbackArea.textContent = '';
                 optionsContainer.innerHTML = '';
+                styleCounterArea.innerHTML = '';
                 docgNameEl.textContent = `${currentDocg.name} (${currentDocg.style})`;
-                
+               
                 const questionType = modeSettings[gameMode].sequence[currentQuestionPart - 1];
 
                 switch (questionType) {
                     case 'region':    displayRegionQuestion(); break;
+                    case 'styles':    displayStylesQuestion(); break;
                     case 'varietals': displayVarietalQuestion(); break;
                     case 'aging':     displayAgingQuestion(); break;
                     case 'soils':     displaySoilsQuestion(); break;
@@ -1429,35 +1446,67 @@
                 renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'region')]);
             }
 
+            function displayStylesQuestion() {
+                optionsContainer.className = "grid grid-cols-2 md:grid-cols-3 gap-4";
+                docgNameEl.textContent = currentDocg.name; // Show base name for this question
+                questionPromptEl.textContent = "Select all correct wine styles for this DOCG.";
+                const correctStyles = docgStylesMap[currentDocg.name];
+                correctStylesRemaining = correctStyles.length;
+               
+                let incorrectStyles = allStyles.filter(s => !correctStyles.includes(s));
+                shuffleArray(incorrectStyles);
+                incorrectStyles = incorrectStyles.slice(0, 5); // Add 5 red herrings
+
+                const options = [
+                    ...correctStyles.map(s => ({ text: s, correct: true })),
+                    ...incorrectStyles.map(s => ({ text: s, correct: false }))
+                ];
+                shuffleArray(options);
+
+                updateStyleCounter();
+               
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = "btn-option w-full p-4 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-500";
+                    button.innerHTML = option.text;
+                    button.onclick = () => handleStyleSelection(option.correct, button);
+                    optionsContainer.appendChild(button);
+                });
+            }
+
             function displayVarietalQuestion() {
+                optionsContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
                 questionPromptEl.textContent = "What are its varietal requirements?";
                 const correctAnswer = { text: currentDocg.varietals, correct: true };
                 renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'varietals')]);
             }
 
             function displayAgingQuestion() {
+                optionsContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
                 questionPromptEl.textContent = "What are the minimum aging requirements?";
                 const correctAnswer = { text: currentDocg.aging, correct: true };
                 renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'aging')]);
             }
-            
+           
             function displaySoilsQuestion() {
+                optionsContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
                 questionPromptEl.textContent = "What are the principal soils?";
                 const correctAnswer = { text: currentDocg.soils, correct: true };
                 renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'soils')]);
             }
 
             function displayProducersQuestion() {
+                optionsContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
                 questionPromptEl.textContent = "Which of these are representative producers?";
                 const correctAnswer = { text: currentDocg.producers, correct: true };
                 renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'producers')]);
             }
 
             /**
-             * Renders the multiple-choice option buttons.
-             * @param {Array} options Array of option objects to display.
+             * Renders the multiple-choice option buttons for single-answer questions.
              */
             function renderOptions(options) {
+                optionsContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
                 shuffleArray(options);
                 optionsContainer.innerHTML = '';
                 options.forEach(option => {
@@ -1470,12 +1519,41 @@
                 });
             }
 
+            function handleStyleSelection(isCorrect, button) {
+                button.disabled = true;
+                if (isCorrect) {
+                    button.classList.add('btn-correct');
+                    correctStylesRemaining--;
+                    score += 2;
+                    updateScore();
+                    updateStyleCounter();
+                    if (correctStylesRemaining === 0) {
+                        feedbackArea.textContent = "All styles found!";
+                        feedbackArea.className = 'mt-6 text-xl font-medium text-green-600';
+                        setTimeout(() => {
+                           if (firstAttemptInRound) {
+                                perfectRounds++;
+                                score += 15;
+                            }
+                            updateScore();
+                            showResultModal();
+                        }, 1500);
+                    }
+                } else {
+                    button.classList.add('btn-incorrect');
+                    firstAttemptInRound = false;
+                }
+            }
+
+            function updateStyleCounter() {
+                styleCounterArea.textContent = `Correct Styles Remaining: ${correctStylesRemaining}`;
+            }
+
             /**
              * Generates unique incorrect options for a given question type.
              */
             function getIncorrectOptions(correctDocg, type) {
                 const incorrect = [];
-                let potentialOptions = [];
                 let sourceArray = [];
 
                 switch(type) {
@@ -1485,19 +1563,19 @@
                     default: // for varietals, aging
                         sourceArray = [...new Set(docgData.map(d => d[type]))];
                 }
-                
+               
                 potentialOptions = sourceArray.filter(item => item !== correctDocg[type]);
                 shuffleArray(potentialOptions);
 
                 for (let i = 0; i < Math.min(3, potentialOptions.length); i++) {
                     incorrect.push({ text: potentialOptions[i], correct: false });
                 }
-                
+               
                 return incorrect;
             }
 
             /**
-             * Handles the player's answer selection, provides feedback, and advances the game.
+             * Handles the player's answer selection for single-answer questions.
              */
             function handleAnswer(isCorrect, button) {
                 const buttons = optionsContainer.querySelectorAll('button');
@@ -1507,44 +1585,33 @@
                     button.classList.add('btn-correct');
                     feedbackArea.textContent = "Correct!";
                     feedbackArea.className = 'mt-6 text-xl font-medium text-green-600';
-                    score += 5; 
+                    score += 5;
                     updateScore();
-
-                    setTimeout(() => {
-                        if (currentQuestionPart < maxQuestionPart) {
-                            currentQuestionPart++;
-                            displayQuestion();
-                        } else { 
-                            if (firstAttemptInRound) {
-                                perfectRounds++;
-                                score += 15; 
-                            }
-                            updateScore();
-                            showResultModal();
-                        }
-                    }, 1200);
-
                 } else {
                     button.classList.add('btn-incorrect');
                     const correctButton = optionsContainer.querySelector('button[data-correct="true"]');
                     if (correctButton) correctButton.classList.add('btn-correct');
-                    
+                   
                     feedbackArea.textContent = "Not quite. Let's continue...";
                     feedbackArea.className = 'mt-6 text-xl font-medium text-red-600';
-                    firstAttemptInRound = false; 
-
-                    setTimeout(() => {
-                        if (currentQuestionPart < maxQuestionPart) {
-                            currentQuestionPart++;
-                            displayQuestion();
-                        } else { 
-                            // This was the last part, so end the round
-                            showResultModal();
-                        }
-                    }, 2000);
+                    firstAttemptInRound = false;
                 }
+
+                setTimeout(() => {
+                    if (currentQuestionPart < maxQuestionPart) {
+                        currentQuestionPart++;
+                        displayQuestion();
+                    } else {
+                        if (firstAttemptInRound) {
+                            perfectRounds++;
+                            score += 15;
+                        }
+                        updateScore();
+                        showResultModal();
+                    }
+                }, isCorrect ? 1200 : 2000);
             }
-            
+           
             /**
              * Updates the score and progress bar on the UI.
              */
@@ -1578,7 +1645,7 @@
                     soilsSection.style.display = 'none';
                     producersSection.style.display = 'none';
                 }
-                
+               
                 if(roundCounter >= MAX_ROUNDS) {
                     nextQuestionBtn.textContent = "Finish Game";
                 } else {
@@ -1587,7 +1654,7 @@
 
                 resultModal.classList.remove('hidden');
             }
-            
+           
             /**
              * Shows the final game over screen.
              */
@@ -1622,7 +1689,7 @@
                     initGame(mode);
                 });
             });
-            
+           
             nextQuestionBtn.addEventListener('click', () => {
                 resultModal.classList.add('hidden');
                 nextRound();
