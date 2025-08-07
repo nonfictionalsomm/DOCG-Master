@@ -68,7 +68,8 @@
 <body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
 
     <div id="game-container" class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8 text-center hidden relative">
-        <button id="study-btn-game" class="absolute top-4 right-6 text-sm text-red-700 hover:underline font-semibold">Click here to study</button>
+        <button id="main-menu-btn" class="absolute top-4 left-6 text-sm text-red-700 hover:underline font-semibold">Main Menu</button>
+        <button id="study-btn-game" class="absolute top-4 right-6 text-sm text-red-700 hover:underline font-semibold">Study</button>
         <h1 class="font-playfair text-4xl md:text-5xl font-bold text-gray-900 mb-2">DOCG Master</h1>
         <p class="text-gray-500 mb-6">Test your knowledge of Italian DOCG wines.</p>
 
@@ -84,7 +85,7 @@
 
         <div id="question-area">
             <p class="text-lg mb-2">You are presented with the following DOCG:</p>
-            <h2 id="docg-name" class="text-2xl md:text-3xl font-bold text-red-700 mb-4"></h2>
+            <h2 id="docg-name" class="text-2xl md:text-3xl font-bold text-red-700 mb-4 break-words"></h2>
             <p id="question-prompt" class="text-xl font-semibold text-gray-800 mb-6"></p>
             <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Options will be dynamically inserted here -->
@@ -116,15 +117,15 @@
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-left">
             <h2 id="result-docg-name" class="font-playfair text-3xl font-bold mb-4"></h2>
             <div class="text-gray-700 space-y-4">
-                 <div>
-                    <h3 class="font-semibold text-lg">Principal Soils:</h3>
-                    <p id="result-soils"></p>
-                </div>
                 <div>
                     <h3 class="font-semibold text-lg">Notes & Typicity:</h3>
                     <p id="result-notes"></p>
                 </div>
-                <div>
+                <div id="soils-section">
+                    <h3 class="font-semibold text-lg">Principal Soils:</h3>
+                    <p id="result-soils"></p>
+                </div>
+                <div id="producers-section">
                     <h3 class="font-semibold text-lg">Representative Producers:</h3>
                     <p id="result-producers"></p>
                 </div>
@@ -1287,6 +1288,7 @@
             const studyBtnWelcome = document.getElementById('study-btn-welcome');
             const studyBtnGame = document.getElementById('study-btn-game');
             const closeStudyModalBtn = document.getElementById('close-study-modal-btn');
+            const mainMenuBtn = document.getElementById('main-menu-btn');
             const studyContent = document.getElementById('study-content');
             const docgNameEl = document.getElementById('docg-name');
             const questionPromptEl = document.getElementById('question-prompt');
@@ -1527,12 +1529,18 @@
                     const correctButton = optionsContainer.querySelector('button[data-correct="true"]');
                     if (correctButton) correctButton.classList.add('btn-correct');
                     
-                    feedbackArea.textContent = "Not quite. Here's the correct info.";
+                    feedbackArea.textContent = "Not quite. Let's continue...";
                     feedbackArea.className = 'mt-6 text-xl font-medium text-red-600';
                     firstAttemptInRound = false; 
 
                     setTimeout(() => {
-                        showResultModal(); 
+                        if (currentQuestionPart < maxQuestionPart) {
+                            currentQuestionPart++;
+                            displayQuestion();
+                        } else { 
+                            // This was the last part, so end the round
+                            showResultModal();
+                        }
                     }, 2000);
                 }
             }
@@ -1553,9 +1561,23 @@
              */
             function showResultModal() {
                 resultDocgNameEl.textContent = `${currentDocg.name} (${currentDocg.style})`;
-                resultSoilsEl.textContent = currentDocg.soils;
                 resultNotesEl.textContent = currentDocg.notes;
+                resultSoilsEl.textContent = currentDocg.soils;
                 resultProducersEl.textContent = currentDocg.producers;
+
+                const soilsSection = document.getElementById('soils-section');
+                const producersSection = document.getElementById('producers-section');
+
+                // Reset visibility
+                soilsSection.style.display = 'block';
+                producersSection.style.display = 'block';
+
+                if (gameMode === 'expert') {
+                    soilsSection.style.display = 'none';
+                } else if (gameMode === 'insane') {
+                    soilsSection.style.display = 'none';
+                    producersSection.style.display = 'none';
+                }
                 
                 if(roundCounter >= MAX_ROUNDS) {
                     nextQuestionBtn.textContent = "Finish Game";
@@ -1584,9 +1606,13 @@
                 studyModal.classList.remove('hidden');
             }
 
-            /** Closes the study modal. */
+            /** Closes the study modal and returns to main menu if in game. */
             function closeStudyModal() {
                 studyModal.classList.add('hidden');
+                if (!gameContainer.classList.contains('hidden')) {
+                    gameContainer.classList.add('hidden');
+                    welcomeModal.classList.remove('hidden');
+                }
             }
 
             // --- Event Listeners ---
@@ -1605,6 +1631,11 @@
             playAgainBtn.addEventListener('click', () => {
                  winModal.classList.add('hidden');
                  welcomeModal.classList.remove('hidden');
+            });
+
+            mainMenuBtn.addEventListener('click', () => {
+                gameContainer.classList.add('hidden');
+                welcomeModal.classList.remove('hidden');
             });
 
             studyBtnWelcome.addEventListener('click', openStudyModal);
