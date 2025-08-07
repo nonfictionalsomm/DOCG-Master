@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCG Master - Italian Wine Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-playfair {
+            font-family: 'Playfair Display', serif;
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .btn-option {
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            min-height: 80px; /* Ensure buttons have a consistent height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .btn-option:hover {
+            transform: translateY(-2px);
+        }
+        .btn-correct {
+            background-color: #22c55e !important; /* green-500 */
+            color: white;
+            border-color: #16a34a; /* green-600 */
+        }
+        .btn-incorrect {
+            background-color: #ef4444 !important; /* red-500 */
+            color: white;
+            border-color: #dc2626; /* red-600 */
+        }
+        .progress-bar-fill {
+            transition: width 0.5s ease-in-out;
+        }
+        /* Styles for the study modal table */
+        #study-modal table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        #study-modal th, #study-modal td {
+            border: 1px solid #e2e8f0;
+            text-align: left;
+            padding: 12px;
+        }
+        #study-modal th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #study-modal tr:nth-child(even) {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8 text-center hidden relative">
+        <button id="study-btn-game" class="absolute top-4 right-6 text-sm text-red-700 hover:underline font-semibold">Click here to study</button>
+        <h1 class="font-playfair text-4xl md:text-5xl font-bold text-gray-900 mb-2">DOCG Master</h1>
+        <p class="text-gray-500 mb-6">Test your knowledge of Italian DOCG wines.</p>
+
+        <div id="progress-container" class="w-full bg-gray-200 rounded-full h-4 mb-6 overflow-hidden">
+            <div id="progress-bar" class="bg-green-500 h-4 rounded-full progress-bar-fill" style="width: 0%;"></div>
+        </div>
+        
+        <div id="score-tracker" class="mb-6 text-lg flex justify-around items-center">
+            <span class="font-semibold text-gray-700">Round: <span id="round-counter">0</span> / 20</span>
+            <span class="font-semibold text-gray-700">Score: <span id="score">0</span></span>
+            <span class="font-semibold text-gray-700">Perfect Rounds: <span id="mastered-count">0</span></span>
+        </div>
+
+        <div id="question-area">
+            <p class="text-lg mb-2">You are presented with the following DOCG:</p>
+            <h2 id="docg-name" class="text-2xl md:text-3xl font-bold text-red-700 mb-4"></h2>
+            <p id="question-prompt" class="text-xl font-semibold text-gray-800 mb-6"></p>
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Options will be dynamically inserted here -->
+            </div>
+        </div>
+        
+        <div id="feedback-area" class="mt-6 text-xl font-medium"></div>
+
+    </div>
+
+    <!-- Welcome Modal -->
+    <div id="welcome-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full text-center">
+            <h2 class="font-playfair text-3xl font-bold mb-4">Welcome to DOCG Master!</h2>
+            <p class="text-gray-700 mb-6">Select a difficulty to begin your 20-round challenge.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button class="mode-select-btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg" data-mode="easy">Easy</button>
+                <button class="mode-select-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg" data-mode="intermediate">Intermediate</button>
+                <button class="mode-select-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg" data-mode="hard">Hard</button>
+                <button class="mode-select-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg" data-mode="expert">Expert</button>
+                <button class="mode-select-btn bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-4 rounded-lg col-span-1 md:col-span-2" data-mode="insane">Insane</button>
+            </div>
+             <button id="study-btn-welcome" class="mt-6 w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors">Study the DOCG Regions</button>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-left">
+            <h2 id="result-docg-name" class="font-playfair text-3xl font-bold mb-4"></h2>
+            <div class="text-gray-700 space-y-4">
+                 <div>
+                    <h3 class="font-semibold text-lg">Principal Soils:</h3>
+                    <p id="result-soils"></p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg">Notes & Typicity:</h3>
+                    <p id="result-notes"></p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg">Representative Producers:</h3>
+                    <p id="result-producers"></p>
+                </div>
+            </div>
+            <button id="next-question-btn" class="mt-8 w-full bg-red-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-800 transition-colors">Next Round</button>
+        </div>
+    </div>
+    
+    <!-- Game Over Modal -->
+    <div id="win-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
+            <h2 class="font-playfair text-4xl font-bold mb-4 text-green-600">Complimenti!</h2>
+            <p class="text-xl text-gray-700 mb-6">You have completed the 20-round challenge!</p>
+            <p class="text-gray-600 mb-2">Your final score is <span id="final-score" class="font-bold"></span>.</p>
+            <p class="text-gray-600 mb-8">You had <span id="final-perfect-rounds" class="font-bold"></span> perfect rounds.</p>
+            <button id="play-again-btn" class="w-full bg-red-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-800 transition-colors">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Study Modal -->
+    <div id="study-modal" class="fixed inset-0 bg-black bg-opacity-70 p-4 sm:p-6 md:p-8 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full h-full flex flex-col p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-playfair text-3xl font-bold">DOCG Database</h2>
+                <button id="close-study-modal-btn" class="text-2xl font-bold hover:text-red-600">&times;</button>
+            </div>
+            <div id="study-content" class="overflow-auto flex-grow">
+                <!-- Database table will be injected here -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- This is the database provided by the user, hidden from view -->
+    <div id="database" class="hidden">
+        <!-- The user-provided HTML table is placed here -->
+        <table>
+            <thead>
+                <tr>
+                    <th>DOCG Name</th>
+                    <th>Region</th>
+                    <th>Wine Style</th>
+                    <th>Varietal Requirements</th>
+                    <th>Minimum Aging Requirements</th>
+                    <th>Principal Soils</th>
+                    <th>Unique Notes & Typicity</th>
+                    <th>Representative Producers</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Abruzzo -->
+                <tr>
+                    <td>Colline Teramane Montepulciano d'Abruzzo DOCG</td>
+                    <td>Abruzzo</td>
+                    <td>Rosso</td>
+                    <td>Minimum 90% Montepulciano, Maximum 10% Sangiovese</td>
+                    <td>Minimum 1 year from November 1 of the harvest year, including 2 months in bottle.</td>
+                    <td>Siliceous Clay, Limestone, Iron</td>
+                    <td>From the hills of Teramo, the finest terroir for Montepulciano in Abruzzo. Min. Alcohol: 12.5%. Max. Yields: 9.5 tons/ha. Max. Elevation: 550 m.</td>
+                    <td>Emidio Pepe, Valentini, Stefano Illuminati</td>
+                </tr>
+                <tr>
+                    <td>Colline Teramane Montepulciano d'Abruzzo DOCG</td>
+                    <td>Abruzzo</td>
+                    <td>Riserva</td>
+                    <td>Minimum 90% Montepulciano, Maximum 10% Sangiovese</td>
+                    <td>Minimum 3 years from November 1 of the harvest year, including a minimum one year in either oak or chestnut and a minimum 6 months in bottle.</td>
+                    <td>Siliceous Clay, Limestone, Iron</td>
+                    <td>From the hills of Teramo, the finest terroir for Montepulciano in Abruzzo. Min. Alcohol: 12.5%. Max. Yields: 9.5 tons/ha. Max. Elevation: 550 m.</td>
+                    <td>Emidio Pepe, Valentini, Stefano Illuminati</td>
+                </tr>
+                <tr>
+                    <td>Terre Tollesi / Tullum DOCG</td>
+                    <td>Abruzzo</td>
+                    <td>Varietal Passerina</td>
+                    <td>min. 90% Passerina, max. 10% combined other suitable white grapes.</td>
+                    <td>Wines may be released January 1 on the year after harvest.</td>
+                    <td>Sandy clays, limestone, marl.</td>
+                    <td>A small, high-quality appellation around the commune of Tollo. Min. Alcohol: 12.5%. Min. Acidity: 5 g/l. Max. Yields: 9 tons/ha. Elevation: 80-228 meters.</td>
+                    <td>Feudo Antico, Tollo, Menicucci</td>
+                </tr>
+                <tr>
+                    <td>Terre Tollesi / Tullum DOCG</td>
+                    <td>Abruzzo</td>
+                    <td>Varietal Pecorino</td>
+                    <td>min. 90% Pecorino, max. 10% combined other suitable white grapes.</td>
+                    <td>Wines may be released January 1 on the year after harvest.</td>
+                    <td>Sandy clays, limestone, marl.</td>
+                    <td>A small, high-quality appellation around the commune of Tollo. Min. Alcohol: 13%. Min. Acidity: 5 g/l. Max. Yields: 9 tons/ha. Elevation: 80-228 meters.</td>
+                    <td>Feudo Antico, Tollo, Menicucci</td>
+                </tr>
+                <tr>
+                    <td>Terre Tollesi / Tullum DOCG</td>
+                    <td>Abruzzo</td>
+                    <td>Rosso</td>
+                    <td>min. 95% Montepulciano, max. 5% combined other suitable non-aromatic red grapes.</td>
+                    <td>Wines may be released January 1 on the second year after harvest.</td>
+                    <td>Sandy clays, limestone, marl.</td>
+                    <td>A small, high-quality appellation around the commune of Tollo. Min. Alcohol: 13%. Min. Acidity: 5 g/l. Max. Yields: 12 tons/ha. Elevation: 80-228 meters.</td>
+                    <td>Feudo Antico, Tollo, Menicucci</td>
+                </tr>
+                <tr>
+                    <td>Terre Tollesi / Tullum DOCG</td>
+                    <td>Abruzzo</td>
+                    <td>Rosso Riserva</td>
+                    <td>min. 95% Montepulciano, max. 5% combined other suitable non-aromatic red grapes.</td>
+                    <td>Must be aged for a min. 2 years, including min. 6 months in wood from January 1 on the year after harvest.</td>
+                    <td>Sandy clays, limestone, marl.</td>
+                    <td>A small, high-quality appellation around the commune of Tollo. Min. Alcohol: 13.5%. Min. Acidity: 5 g/l. Max. Yields: 9 tons/ha. Elevation: 80-228 meters.</td>
+                    <td>Feudo Antico, Tollo, Menicucci</td>
+                </tr>
+                <tr>
+                    <td>Terre Tollesi / Tullum DOCG</td>
+                    <td>Abruzzo</td>
+                    <td>Spumante Bianco</td>
+                    <td>min. 60% Chardonnay, max. 40% combined other suitable non-aromatic white grapes.</td>
+                    <td>No minimum aging specified beyond production method.</td>
+                    <td>Sandy clays, limestone, marl.</td>
+                    <td>A small, high-quality appellation around the commune of Tollo. Min. Alcohol: 12%. Min. Acidity: 5 g/l. Max. Yields: 12 tons/ha. Elevation: 80-228 meters.</td>
+                    <td>Feudo Antico, Tollo, Menicucci</td>
+                </tr>
+                <!-- Basilicata -->
+                <tr>
+                    <td>Aglianico del Vulture Superiore DOCG</td>
+                    <td>Basilicata</td>
+                    <td>Superiore</td>
+                    <td>100% Aglianico</td>
+                    <td>12 months in barrel, 12 months in bottle, not to be released before November 1 of the third year following the harvest.</td>
+                    <td>Volcanic, clay, limestone.</td>
+                    <td>From the slopes of the extinct Mount Vulture volcano, these are powerful, age-worthy reds. Min. Alcohol: 13.5%. Max. Yields: 8 tons/ha. Vineyard Elevation: 200 to 700 meters.</td>
+                    <td>Elena Fucci, Paternoster, Grifalco</td>
+                </tr>
+                <tr>
+                    <td>Aglianico del Vulture Superiore DOCG</td>
+                    <td>Basilicata</td>
+                    <td>Superiore Riserva</td>
+                    <td>100% Aglianico</td>
+                    <td>2 years in barrel and 12 months in bottle, not to be released before November 1 of the fifth year following the harvest.</td>
+                    <td>Volcanic, clay, limestone.</td>
+                    <td>From the slopes of the extinct Mount Vulture volcano, these are powerful, age-worthy reds. Min. Alcohol: 13.5%. Max. Yields: 8 tons/ha. Vineyard Elevation: 200 to 700 meters.</td>
+                    <td>Elena Fucci, Paternoster, Grifalco</td>
+                </tr>
+                <!-- Calabria -->
+                <tr>
+                    <td>Ciro Classico DOCG</td>
+                    <td>Calabria</td>
+                    <td>Rosso Riserva</td>
+                    <td>min. 90% Gaglioppo, max. 10% Magliocco and/or Greco Nero</td>
+                    <td>min. 36 months from January 1 of the year following the harvest, min. 6 months in wood.</td>
+                    <td>Clay, limestone, marl.</td>
+                    <td>Calabria's most famous wine, from the historic heartland of the Cirò appellation. Min. Alcohol: 13%. Max. Yields: 8 tons per ha.</td>
+                    <td>Librandi, Scala, 'A Vita</td>
+                </tr>
+                <!-- Campania -->
+                <tr>
+                    <td>Aglianico del Taburno DOCG</td>
+                    <td>Campania</td>
+                    <td>Rosato</td>
+                    <td>Minimum 85% Aglianico, maximum 15% other suitable non-aromatic red grapes</td>
+                    <td>May not be released prior to March 1 of the year following the harvest.</td>
+                    <td>Clay, calcareous marl.</td>
+                    <td>From the slopes of Mount Taburno, known for powerful, age-worthy reds. Min. Alcohol: 12%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Fattoria La Rivolta, Fontanavecchia, Ocone</td>
+                </tr>
+                <tr>
+                    <td>Aglianico del Taburno DOCG</td>
+                    <td>Campania</td>
+                    <td>Rosso</td>
+                    <td>Minimum 85% Aglianico, maximum 15% other suitable non-aromatic red grapes</td>
+                    <td>Min 2 years from November 1 of the harvest year.</td>
+                    <td>Clay, calcareous marl.</td>
+                    <td>From the slopes of Mount Taburno, known for powerful, age-worthy reds. Min. Alcohol: 12%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Fattoria La Rivolta, Fontanavecchia, Ocone</td>
+                </tr>
+                <tr>
+                    <td>Aglianico del Taburno DOCG</td>
+                    <td>Campania</td>
+                    <td>Rosso Riserva</td>
+                    <td>Minimum 85% Aglianico, maximum 15% other suitable non-aromatic red grapes</td>
+                    <td>Min. 3 years from November 1 of the harvest year, including at least 1 year in wood and 6 months in bottle.</td>
+                    <td>Clay, calcareous marl.</td>
+                    <td>From the slopes of Mount Taburno, known for powerful, age-worthy reds. Min. Alcohol: 13%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Fattoria La Rivolta, Fontanavecchia, Ocone</td>
+                </tr>
+                <tr>
+                    <td>Fiano di Avellino DOCG</td>
+                    <td>Campania</td>
+                    <td>Bianco</td>
+                    <td>Minimum 85% Fiano, Maximum 15% combined Trebbiano Toscano, Coda di Volpe, and/or Greco</td>
+                    <td>May not be released before March 1 of the year following the harvest.</td>
+                    <td>Volcanic, clay, sandstone.</td>
+                    <td>One of Italy's greatest white wines, from the volcanic hills of Irpinia, known for its texture and complexity. Min. Alcohol: 11.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Ciro Picariello, Guido Marsella, Pietracupa</td>
+                </tr>
+                <tr>
+                    <td>Fiano di Avellino DOCG</td>
+                    <td>Campania</td>
+                    <td>Riserva</td>
+                    <td>Minimum 85% Fiano, Maximum 15% combined Trebbiano Toscano, Coda di Volpe, and/or Greco</td>
+                    <td>min. 1 year, may be released no earlier than Nov. 1 in the year after harvest.</td>
+                    <td>Volcanic, clay, sandstone.</td>
+                    <td>One of Italy's greatest white wines, from the volcanic hills of Irpinia, known for its texture and complexity. Min. Alcohol: 11.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Ciro Picariello, Guido Marsella, Pietracupa</td>
+                </tr>
+                <tr>
+                    <td>Greco di Tufo DOCG</td>
+                    <td>Campania</td>
+                    <td>Bianco</td>
+                    <td>Minimum 85% Greco, Maximum 15% Coda di Volpe</td>
+                    <td>May not be released before March 1 of the year following the harvest.</td>
+                    <td>Clay, limestone, volcanic tuff.</td>
+                    <td>Known for its distinct smoky, flinty minerality from the sulfur-rich tuff soils of Irpinia. Min. Alcohol: 11.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Benito Ferrara, Mastroberardino, Cantine di Marzo</td>
+                </tr>
+                <tr>
+                    <td>Greco di Tufo DOCG</td>
+                    <td>Campania</td>
+                    <td>Riserva</td>
+                    <td>Minimum 85% Greco, Maximum 15% Coda di Volpe</td>
+                    <td>Min. 1 year aging from November 1 of the harvest year.</td>
+                    <td>Clay, limestone, volcanic tuff.</td>
+                    <td>Known for its distinct smoky, flinty minerality from the sulfur-rich tuff soils of Irpinia. Min. Alcohol: 11.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Benito Ferrara, Mastroberardino, Cantine di Marzo</td>
+                </tr>
+                <tr>
+                    <td>Greco di Tufo DOCG</td>
+                    <td>Campania</td>
+                    <td>Spumante</td>
+                    <td>Minimum 85% Greco, Maximum 15% Coda di Volpe</td>
+                    <td>Min. 18 months aging in bottle from November 1 of the harvest year.</td>
+                    <td>Clay, limestone, volcanic tuff.</td>
+                    <td>Must be produced via metodo classico. Min. Alcohol: 12%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Benito Ferrara, Mastroberardino, Cantine di Marzo</td>
+                </tr>
+                <tr>
+                    <td>Greco di Tufo DOCG</td>
+                    <td>Campania</td>
+                    <td>Spumante Riserva</td>
+                    <td>Minimum 85% Greco, Maximum 15% Coda di Volpe</td>
+                    <td>Min. 36 months aging in bottle from November 1 of the harvest year.</td>
+                    <td>Clay, limestone, volcanic tuff.</td>
+                    <td>Must be produced via metodo classico. Min. Alcohol: 12%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Benito Ferrara, Mastroberardino, Cantine di Marzo</td>
+                </tr>
+                <tr>
+                    <td>Taurasi DOCG</td>
+                    <td>Campania</td>
+                    <td>Rosso</td>
+                    <td>Minimum 85% Aglianico, Combined maximum 15% other non-aromatic red grapes of Avellino</td>
+                    <td>Minimum 3 years from December 1 of the harvest year, including at least one year in wood.</td>
+                    <td>Clay, calcareous marl, volcanic.</td>
+                    <td>The most famous Aglianico appellation, producing deeply complex, structured, and long-lived red wines. Min. Alcohol: 12%. Max. Yields: 10 tons/ha.</td>
+                    <td>Feudi di San Gregorio, Luigi Tecce, Contrade di Taurasi</td>
+                </tr>
+                <tr>
+                    <td>Taurasi DOCG</td>
+                    <td>Campania</td>
+                    <td>Riserva</td>
+                    <td>Minimum 85% Aglianico, Combined maximum 15% other non-aromatic red grapes of Avellino</td>
+                    <td>Minimum 4 years from December 1 of the harvest year, including at least 18 months in wood.</td>
+                    <td>Clay, calcareous marl, volcanic.</td>
+                    <td>The most famous Aglianico appellation, producing deeply complex, structured, and long-lived red wines. Min. Alcohol: 12.5%. Max. Yields: 10 tons/ha.</td>
+                    <td>Feudi di San Gregorio, Luigi Tecce, Contrade di Taurasi</td>
+                </tr>
+                <!-- Emilia-Romagna -->
+                <tr>
+                    <td>Colli Bolognesi Pignoletto DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Frizzante</td>
+                    <td>Min. 85% Pignoletto</td>
+                    <td>May not be sold until April 1 of the year after harvest.</td>
+                    <td>Clay, limestone, sand.</td>
+                    <td>This DOCG is reserved for the highest quality Pignoletto from the historic Classico zone. Min. Alcohol: 11%. Max. Yields: 12 t/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Gaggioli, Manaresi, Isola</td>
+                </tr>
+                <tr>
+                    <td>Colli Bolognesi Pignoletto DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Spumante</td>
+                    <td>Min. 85% Pignoletto</td>
+                    <td>May not be sold until April 1 of the year after harvest.</td>
+                    <td>Clay, limestone, sand.</td>
+                    <td>This DOCG is reserved for the highest quality Pignoletto from the historic Classico zone. Min. Alcohol: 11%. Max. Yields: 12 t/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Gaggioli, Manaresi, Isola</td>
+                </tr>
+                <tr>
+                    <td>Colli Bolognesi Pignoletto DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Superiore</td>
+                    <td>Min. 85% Pignoletto</td>
+                    <td>May not be sold until April 1 of the year after harvest.</td>
+                    <td>Clay, limestone, sand.</td>
+                    <td>This DOCG is reserved for the highest quality Pignoletto from the historic Classico zone. Min. Alcohol: 11.5%. Max. Yields: 11 t/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Gaggioli, Manaresi, Isola</td>
+                </tr>
+                <tr>
+                    <td>Colli Bolognesi Pignoletto DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Classico Superiore</td>
+                    <td>Min. 95% Pignoletto (Grechetto Gentile)</td>
+                    <td>May not be sold until October 4th of the year after harvest.</td>
+                    <td>Clay, limestone, sand.</td>
+                    <td>This DOCG is reserved for the highest quality still Pignoletto from the historic Classico zone. Min. Alcohol: 12%. Max. Residual Sugar: 6 g/l. Max. Yields: 9 t/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Gaggioli, Manaresi, Isola</td>
+                </tr>
+                <tr>
+                    <td>Romagna Albana DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Secco</td>
+                    <td>Min. 95% Albana, Max. 5% other suitable white grapes</td>
+                    <td>No minimum aging specified beyond normal vinification.</td>
+                    <td>Clay, sandy loam, limestone.</td>
+                    <td>Italy's first white wine DOCG (1987). Min. Alcohol: 12%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,500 vines/ha (Pergola).</td>
+                    <td>Fattoria Zerbina, Tre Monti, Leone Conti</td>
+                </tr>
+                <tr>
+                    <td>Romagna Albana DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Amabile</td>
+                    <td>Min. 95% Albana, Max. 5% other suitable white grapes</td>
+                    <td>No minimum aging specified beyond normal vinification.</td>
+                    <td>Clay, sandy loam, limestone.</td>
+                    <td>Italy's first white wine DOCG (1987). This is a medium-sweet style. Min. Alcohol: 12.5%. Residual Sugar: 12-30 g/l. Max. Yields: 10 tons/ha.</td>
+                    <td>Fattoria Zerbina, Tre Monti, Leone Conti</td>
+                </tr>
+                <tr>
+                    <td>Romagna Albana DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Dolce</td>
+                    <td>Min. 95% Albana, Max. 5% other suitable white grapes</td>
+                    <td>No minimum aging specified beyond normal vinification.</td>
+                    <td>Clay, sandy loam, limestone.</td>
+                    <td>Italy's first white wine DOCG (1987). This is a distinctly sweet style. Min. Alcohol: 12.5% (8.5% acquired). Residual Sugar: 45-80 g/l. Max. Yields: 10 tons/ha.</td>
+                    <td>Fattoria Zerbina, Tre Monti, Leone Conti</td>
+                </tr>
+                <tr>
+                    <td>Romagna Albana DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Passito</td>
+                    <td>Min. 95% Albana, Max. 5% other suitable white grapes</td>
+                    <td>May not be sold until September 1 of the year following the harvest.</td>
+                    <td>Clay, sandy loam, limestone.</td>
+                    <td>A highly prized sweet wine from dried grapes. Grapes must be dried to a min. 284 g/l must weight. Min. Alcohol: 17% (12.5% acquired). Max. Yields: 10 tons/ha.</td>
+                    <td>Fattoria Zerbina, Tre Monti, Leone Conti</td>
+                </tr>
+                <tr>
+                    <td>Romagna Albana DOCG</td>
+                    <td>Emilia-Romagna</td>
+                    <td>Passito Riserva</td>
+                    <td>Min. 95% Albana, Max. 5% other suitable white grapes</td>
+                    <td>May not be sold until December 1 of the year following the harvest.</td>
+                    <td>Clay, sandy loam, limestone.</td>
+                    <td>The pinnacle of Albana production, this sweet wine requires the presence of "muffa nobile" (noble rot). Grapes must be dried to a min. 400 g/l must weight. Min. Alcohol: 24% (4% acquired min). Max. Yields: 10 tons/ha.</td>
+                    <td>Fattoria Zerbina, Tre Monti, Leone Conti</td>
+                </tr>
+                <!-- Friuli-Venezia Giulia -->
+                <tr>
+                    <td>Colli Orientali del Friuli Picolit DOCG</td>
+                    <td>Friuli-Venezia Giulia</td>
+                    <td>Bianco</td>
+                    <td>Minimum 85% Picolit, maximum 15% other suitable white grapes of Friuli, excluding Gewürztraminer.</td>
+                    <td>May not be sold until September 1 of the year following the harvest.</td>
+                    <td>Marl and sandstone ("Ponca").</td>
+                    <td>A rare and precious sweet wine from the Picolit grape, which naturally produces very few berries per bunch. Min. Alcohol: 15%. Max. Yields: 4 tons/ha. Min. Planting Density: 3,500 vines/ha.</td>
+                    <td>Livio Felluga, Rocca Bernarda, Ronchi di Cialla</td>
+                </tr>
+                <tr>
+                    <td>Colli Orientali del Friuli Picolit DOCG</td>
+                    <td>Friuli-Venezia Giulia</td>
+                    <td>Cialla Riserva (Subzone)</td>
+                    <td>100% Picolit</td>
+                    <td>Minimum 4 years aging from November 1 of the harvest year.</td>
+                    <td>Marl and sandstone ("Ponca").</td>
+                    <td>The Cialla subzone is a historic monopole cru for Picolit. Min. Alcohol: 16%. Max. Yields: 4 tons/ha. Min. Planting Density: 3,500 vines/ha.</td>
+                    <td>Livio Felluga, Rocca Bernarda, Ronchi di Cialla</td>
+                </tr>
+                <tr>
+                    <td>Ramandolo DOCG</td>
+                    <td>Friuli-Venezia Giulia</td>
+                    <td>Bianco Dolce</td>
+                    <td>100% Verduzzo Friulano (Verduzzo Giallo)</td>
+                    <td>May not be released before September 1 of the year following the harvest.</td>
+                    <td>Marl and sandstone ("Ponca").</td>
+                    <td>A sweet wine made from Verduzzo grapes dried on the vine, from a small hilly area. Min. Alcohol: 14%. Max. Yields: 8 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Giovanni Dri, Dario Coos, La Roncaia</td>
+                </tr>
+                <tr>
+                    <td>Rosazzo DOCG</td>
+                    <td>Friuli-Venezia Giulia</td>
+                    <td>Bianco</td>
+                    <td>Min. 50% Friulano, 20-30% Sauvignon Blanc, 20-30% Pinot Bianco and/or Chardonnay, Max. 10% Ribolla</td>
+                    <td>Must be placed on the market by April 1 of the second year after harvest.</td>
+                    <td>Marl and sandstone ("Ponca"), Flysch.</td>
+                    <td>Named after the historic Abbey of Rosazzo, a prestigious white blend with great complexity and aging potential. Min. Alcohol: 12%. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Livio Felluga (Terre Alte), Ronco delle Betulle, Le Vigne di Zamò</td>
+                </tr>
+                <!-- Lazio -->
+                <tr>
+                    <td>Cannellino di Frascati DOCG</td>
+                    <td>Lazio</td>
+                    <td>Vendemmia Tardiva</td>
+                    <td>Minimum 70% combined Malvasia Bianca di Candia and/or Malvasia del Lazio, Maximum 30% Bellone, Bombino Bianco, Greco Bianco, Trebbiano</td>
+                    <td>No minimum aging specified beyond the normal production cycle.</td>
+                    <td>Volcanic (basalt, pozzolan).</td>
+                    <td>The sweet, late-harvest version of Frascati from the volcanic hills around Rome. Min. Alcohol: 10% (12.5% potential). Min. Residual Sugar: 35 g/l. Max. Yields: 11 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Fontana Candida, Castel de Paolis, Casale Marchese</td>
+                </tr>
+                <tr>
+                    <td>Cesanese del Piglio (Piglio) DOCG</td>
+                    <td>Lazio</td>
+                    <td>Rosso</td>
+                    <td>Minimum 90% combined Cesanese di Affile and/or Cesanese comune, Maximum 10% other red grapes of Lazio</td>
+                    <td>May not be sold until February 1 of the year following the harvest.</td>
+                    <td>Red earth, clay, limestone.</td>
+                    <td>A benchmark for the aromatic Cesanese grape, with notes of wild berries and pepper. Min. Alcohol: 12%. Max. Yields: 11 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Damiano Ciolli, Marcella Giuliani, Casale della Ioria</td>
+                </tr>
+                <tr>
+                    <td>Cesanese del Piglio (Piglio) DOCG</td>
+                    <td>Lazio</td>
+                    <td>Riserva</td>
+                    <td>Minimum 90% combined Cesanese di Affile and/or Cesanese comune, Maximum 10% other red grapes of Lazio</td>
+                    <td>Minimum 20 months of aging, including 6 months in the bottle.</td>
+                    <td>Red earth, clay, limestone.</td>
+                    <td>A benchmark for the aromatic Cesanese grape, with notes of wild berries and pepper. Min. Alcohol: 14%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Damiano Ciolli, Marcella Giuliani, Casale della Ioria</td>
+                </tr>
+                <tr>
+                    <td>Frascati Superiore DOCG</td>
+                    <td>Lazio</td>
+                    <td>Bianco</td>
+                    <td>Minimum 70% combined Malvasia Bianca di Candia and/or Malvasia del Lazio, Maximum 30% Bellone, Bombino Bianco, Greco Bianco, Trebbiano</td>
+                    <td>No minimum aging specified beyond the normal production cycle.</td>
+                    <td>Volcanic (basalt, pozzolan).</td>
+                    <td>The high-quality dry version of Frascati, from the historic heartland. Min. Alcohol: 12%. Max. Yields: 11 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Principe Pallavicini, Merumalia, Villa Simone</td>
+                </tr>
+                <tr>
+                    <td>Frascati Superiore DOCG</td>
+                    <td>Lazio</td>
+                    <td>Riserva</td>
+                    <td>Minimum 70% combined Malvasia Bianca di Candia and/or Malvasia del Lazio, Maximum 30% Bellone, Bombino Bianco, Greco Bianco, Trebbiano</td>
+                    <td>Must be aged for a min. 1 year from November 1 of the year of harvest, including at least 3 months in the bottle.</td>
+                    <td>Volcanic (basalt, pozzolan).</td>
+                    <td>The high-quality dry version of Frascati, from the historic heartland. Min. Alcohol: 13%. Max. Yields: 11 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Principe Pallavicini, Merumalia, Villa Simone</td>
+                </tr>
+                <!-- Lombardia -->
+                <tr>
+                    <td>Franciacorta DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Spumante</td>
+                    <td>Pinot Nero and/or Chardonnay, Maximum 50% Pinot Bianco, Maximum 10% Erbamat</td>
+                    <td>Minimum 18 months on the lees after tirage.</td>
+                    <td>Morainic (gravel, sand, silt), limestone.</td>
+                    <td>Italy's most prestigious traditional method sparkling wine. Min. Alcohol: 11.5%. Max. Yields: 12 tons/ha. Min. Planting Density: 4,500 vines/ha.</td>
+                    <td>Ca' del Bosco, Bellavista, Berlucchi</td>
+                </tr>
+                <tr>
+                    <td>Franciacorta DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Satèn</td>
+                    <td>Chardonnay and a maximum 50% Pinot Bianco</td>
+                    <td>Minimum 24 months on the lees after tirage.</td>
+                    <td>Morainic (gravel, sand, silt), limestone.</td>
+                    <td>Satèn is a unique style to Franciacorta, a blanc de blancs with lower pressure (max 5 atm) for a creamier mousse. Brut only. Min. Alcohol: 11.5%. Max. Yields: 12 tons/ha.</td>
+                    <td>Ca' del Bosco, Bellavista, Berlucchi</td>
+                </tr>
+                <tr>
+                    <td>Franciacorta DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Riserva</td>
+                    <td>Pinot Nero and/or Chardonnay, Maximum 50% Pinot Bianco, Maximum 10% Erbamat</td>
+                    <td>Minimum 60 months on the lees after tirage.</td>
+                    <td>Morainic (gravel, sand, silt), limestone.</td>
+                    <td>Italy's most prestigious traditional method sparkling wine. Min. Alcohol: 11.5%. Max. Yields: 12 tons/ha.</td>
+                    <td>Ca' del Bosco, Bellavista, Berlucchi</td>
+                </tr>
+                <tr>
+                    <td>Oltrepò Pavese Metodo Classico DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Spumante</td>
+                    <td>Minimum 70% Pinot Nero, Combined maximum 30% Chardonnay, Pinot Grigio, Pinot Bianco</td>
+                    <td>Minimum 15 months on the lees from January 1 of the year following the harvest.</td>
+                    <td>Calcareous clay, marl.</td>
+                    <td>Traditional method sparkling wine from Italy's largest Pinot Nero growing area. Min. Alcohol: 11.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Monsupello, Conte Vistarino, Giorgi</td>
+                </tr>
+                <tr>
+                    <td>Oltrepò Pavese Metodo Classico DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Pinot Nero Rosé</td>
+                    <td>Minimum 85% Pinot Nero</td>
+                    <td>Minimum 15 months on the lees from January 1 of the year following the harvest.</td>
+                    <td>Calcareous clay, marl.</td>
+                    <td>Traditional method sparkling wine from Italy's largest Pinot Nero growing area. Min. Alcohol: 12%. Max. Yields: 10 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Monsupello, Conte Vistarino, Giorgi</td>
+                </tr>
+                <tr>
+                    <td>Scanzo (Moscato di Scanzo) DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Passito</td>
+                    <td>100% Moscato di Scanzo (red)</td>
+                    <td>Minimum 2 years, not to be released until November 1 of the second year following the harvest.</td>
+                    <td>Calcareous marl ("Sass de Luna").</td>
+                    <td>A rare, aromatic red passito wine. Grapes must be dried for min. 21 days. Min. Alcohol: 17% (14% acquired). Min/Max Residual Sugar: 50-100 g/l. Max. Yields: 7 tons/ha.</td>
+                    <td>La Brugherata, Biava, De Toma</td>
+                </tr>
+                <tr>
+                    <td>Sforzato di Valtellina (Sfursat di Valtellina) DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Rosso</td>
+                    <td>Minimum 90% Chiavennasca (Nebbiolo), Maximum 10% other suitable non-aromatic red grapes</td>
+                    <td>Must be aged for at least 20 months from April 1 of the year following the harvest, including at least 12 months in wood.</td>
+                    <td>Rocky, sandy, shallow alluvial.</td>
+                    <td>The "Amarone of the Alps," a powerful red made from dried Nebbiolo grapes grown on steep terraces. Min. Alcohol: 14%. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Nino Negri, Mamete Prevostini, ARPEPE</td>
+                </tr>
+                <tr>
+                    <td>Valtellina Superiore DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Rosso</td>
+                    <td>Minimum 90% Chiavennasca (Nebbiolo), Maximum 10% other suitable non-aromatic red grapes</td>
+                    <td>24 months from December 1 of the harvest year, including a minimum 12 months in wood.</td>
+                    <td>Rocky, sandy, shallow alluvial.</td>
+                    <td>An elegant, alpine expression of Nebbiolo from heroic terraced vineyards. Includes five subzones (e.g., Sassella, Inferno). Min. Alcohol: 12%. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Ar.Pe.Pe., Sandro Fay, Plozza</td>
+                </tr>
+                <tr>
+                    <td>Valtellina Superiore DOCG</td>
+                    <td>Lombardia</td>
+                    <td>Riserva</td>
+                    <td>Minimum 90% Chiavennasca (Nebbiolo), Maximum 10% other suitable non-aromatic red grapes</td>
+                    <td>Minimum 3 years.</td>
+                    <td>Rocky, sandy, shallow alluvial.</td>
+                    <td>An elegant, alpine expression of Nebbiolo from heroic terraced vineyards. Includes five subzones (e.g., Sassella, Inferno). Min. Alcohol: 12%. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Ar.Pe.Pe., Sandro Fay, Plozza</td>
+                </tr>
+                <!-- Marche -->
+                <tr>
+                    <td>Castelli di Jesi Verdicchio Riserva DOCG</td>
+                    <td>Marche</td>
+                    <td>Bianco Riserva</td>
+                    <td>Minimum 85% Verdicchio, Maximum 15% other suitable non-aromatic white grapes</td>
+                    <td>18 months from December 1 of the harvest year, including at least 6 months in the bottle.</td>
+                    <td>Clay, limestone, sand.</td>
+                    <td>A structured, age-worthy white from the Verdicchio grape, known for notes of bitter almond and citrus. Min. Alcohol: 12.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,200 vines/ha.</td>
+                    <td>Umani Ronchi, Bucci, Garofoli</td>
+                </tr>
+                <tr>
+                    <td>Cònero (Cònero Riserva) DOCG</td>
+                    <td>Marche</td>
+                    <td>Rosso Riserva</td>
+                    <td>Minimum 85% Montepulciano, Maximum 15% Sangiovese</td>
+                    <td>Minimum 2 years from November 1 of the harvest year.</td>
+                    <td>Calcareous marl, clay.</td>
+                    <td>A robust, savory red from the limestone slopes of Monte Cònero on the Adriatic coast. Min. Alcohol: 12.5%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,330 vines/ha.</td>
+                    <td>Fattoria Le Terrazze, Moroder, Alessandro Moroder</td>
+                </tr>
+                <tr>
+                    <td>Offida DOCG</td>
+                    <td>Marche</td>
+                    <td>Varietal Pecorino</td>
+                    <td>min. 85% Pecorino, max. 15% suitable non-aromatic white grapes</td>
+                    <td>Released from March 1 in the year following harvest.</td>
+                    <td>Clay, sand, limestone.</td>
+                    <td>The DOCG highlights the region's key native grapes. Pecorino is a structured, herbal white. Min. Alcohol: 12%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Velenosi, Tenuta Cocci Grifoni, San Savino</td>
+                </tr>
+                <tr>
+                    <td>Offida DOCG</td>
+                    <td>Marche</td>
+                    <td>Rosso</td>
+                    <td>min. 85% Montepulciano, max. 15% suitable non-aromatic red grapes</td>
+                    <td>Must be aged for a min. 24 months from November 1 of the harvest year, including at least 12 months in wood and 3 months in the bottle.</td>
+                    <td>Clay, sand, limestone.</td>
+                    <td>The DOCG highlights the region's key native grapes. The Rosso is a serious, age-worthy Montepulciano. Min. Alcohol: 13%. Max. Yields: 8.5 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Velenosi, Tenuta Cocci Grifoni, San Savino</td>
+                </tr>
+                <tr>
+                    <td>Verdicchio di Matelica Riserva DOCG</td>
+                    <td>Marche</td>
+                    <td>Bianco Riserva</td>
+                    <td>Minimum 85% Verdicchio, Maximum 15% other suitable white grapes</td>
+                    <td>18 months from December 1 of the harvest year.</td>
+                    <td>Clay, limestone, sand.</td>
+                    <td>From a unique north-south valley, these wines are typically more structured and acidic than their Jesi counterparts. Min. Alcohol: 12.5%. Max. Yields: 9.5 tons/ha. Min. Planting Density: 2,200 vines/ha.</td>
+                    <td>Belisario, Bisci, Borgo Paglianetto</td>
+                </tr>
+                <tr>
+                    <td>Vernaccia di Serrapetrona DOCG</td>
+                    <td>Marche</td>
+                    <td>Rosso Spumante</td>
+                    <td>Minimum 85% Vernaccia Nera</td>
+                    <td>May not be released until June 30 of the year following the grape harvest.</td>
+                    <td>Clay, limestone, sandstone.</td>
+                    <td>A unique sparkling red made via a three-fermentation process, with a portion of the grapes being dried. Min. Alcohol: 11.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 2,200 vines/ha.</td>
+                    <td>Fontezoppa, Colleluce, Alberto Quacquarini</td>
+                </tr>
+                <!-- Piemonte -->
+                <tr>
+                    <td>Alta Langa DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Spumante</td>
+                    <td>Min. 90% combined Pinot Noir and/or Chardonnay, Max. 10% other suitable non-aromatic varieties</td>
+                    <td>30 months on the lees.</td>
+                    <td>Calcareous marl, clay, limestone.</td>
+                    <td>High-altitude traditional method sparkling wine that must always be vintage-dated. Min. Alcohol: 11.5%. Max. Yields: 11 tons/ha. Min. Planting Density: 4,000 vines/ha. Min. Elevation: 250 meters.</td>
+                    <td>Fontanafredda, Enrico Serafino, Cocchi</td>
+                </tr>
+                <tr>
+                    <td>Asti DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Spumante "Metodo Classico"</td>
+                    <td>97% Moscato Bianco with other aromatic grapes</td>
+                    <td>Min. 9 months on the lees.</td>
+                    <td>Calcareous marl, limestone, sand.</td>
+                    <td>Asti is famous for its aromatic sparkling wines. The Metodo Classico is a rare, high-quality version. Min. Alcohol: 12% (6% acquired). Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Contratto, Coppo, Gancia</td>
+                </tr>
+                <tr>
+                    <td>Asti DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Moscato d'Asti</td>
+                    <td>97% Moscato Bianco with other aromatic grapes</td>
+                    <td>No minimum aging specified beyond the production cycle.</td>
+                    <td>Calcareous marl, limestone, sand.</td>
+                    <td>A lightly sparkling (frizzante), low-alcohol sweet wine with intense notes of peach and sage. Min. Alcohol: 11% (4.5% acquired). Max. Yields: 10 tons/ha.</td>
+                    <td>Paolo Saracco, La Spinetta, Michele Chiarlo</td>
+                </tr>
+                <tr>
+                    <td>Asti DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Moscato d'Asti "Vendemmia Tardiva"</td>
+                    <td>97% Moscato Bianco with other aromatic grapes</td>
+                    <td>Must be aged for at least one year from the date of harvest.</td>
+                    <td>Calcareous marl, limestone, sand.</td>
+                    <td>A late-harvest, non-sparkling sweet wine style. Min. Alcohol: 14% (11% acquired). Max. Yields: 6 tons/ha.</td>
+                    <td>Paolo Saracco, La Spinetta, Michele Chiarlo</td>
+                </tr>
+                <tr>
+                    <td>Barbaresco DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Rosso</td>
+                    <td>100% Nebbiolo</td>
+                    <td>Minimum 26 months from November 1 of the harvest year (minimum 9 months in wood).</td>
+                    <td>Tortonian calcareous marl.</td>
+                    <td>The elegant counterpart to Barolo, from the hills around Barbaresco, Neive, and Treiso. Min. Alcohol: 12.5%. Max. Yields: 8 tons/ha. Max. Elevation: 550 meters.</td>
+                    <td>Gaja, Produttori del Barbaresco, Bruno Rocca</td>
+                </tr>
+                <tr>
+                    <td>Barbaresco DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>100% Nebbiolo</td>
+                    <td>Minimum 50 months from November 1 of the harvest year (minimum 9 months in wood).</td>
+                    <td>Tortonian calcareous marl.</td>
+                    <td>The elegant counterpart to Barolo, from the hills around Barbaresco, Neive, and Treiso. Min. Alcohol: 12.5%. Max. Yields: 8 tons/ha. Max. Elevation: 550 meters.</td>
+                    <td>Gaja, Produttori del Barbaresco, Bruno Rocca</td>
+                </tr>
+                <tr>
+                    <td>Barbera d'Asti DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Superiore</td>
+                    <td>90-100% Barbera, maximum 10% of other suitable non-aromatic black grape varieties</td>
+                    <td>14 months from November 1 of the harvest year, including at least 6 months in oak.</td>
+                    <td>Clay, silt, sand and limestone.</td>
+                    <td>The spiritual home of the Barbera grape, prized for its deep color, high acidity, and red fruit flavors. The Nizza subzone was elevated to its own DOCG in 2014. Min. Alcohol: 12.5%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,500 vines/ha.</td>
+                    <td>Braida di Giacomo Bologna, Coppo, Vietti</td>
+                </tr>
+                <tr>
+                    <td>Barbera del Monferrato Superiore DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Superiore</td>
+                    <td>minimum 85% Barbera, combined maximum 15% of Freisa, Grignolino, Dolcetto</td>
+                    <td>minimum 14 months from November 1 of the harvest year, including at least 6 months in oak.</td>
+                    <td>Calcareous clay, marl.</td>
+                    <td>Often a brighter, more rustic style of Barbera. Min. Alcohol: 13%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,500 vines/ha. Max. Elevation: 650m.</td>
+                    <td>Tenuta Santa Caterina, Castello di Uviglie, Accornero</td>
+                </tr>
+                <tr>
+                    <td>Barolo DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Rosso</td>
+                    <td>100% Nebbiolo</td>
+                    <td>38 months from November 1 of the harvest year, including 18 months in wood.</td>
+                    <td>Tortonian marl, Serravallian sandstone.</td>
+                    <td>The "King of Wines," a powerful, complex, and long-lived red from the Langhe hills. Min. Alcohol: 13%. Max. Yields: 8 tons/ha. Elevation: 170-540 meters.</td>
+                    <td>Giacomo Conterno, Bartolo Mascarello, Luciano Sandrone</td>
+                </tr>
+                <tr>
+                    <td>Barolo DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>100% Nebbiolo</td>
+                    <td>62 months from November 1 of the harvest year, including 18 months in wood.</td>
+                    <td>Tortonian marl, Serravallian sandstone.</td>
+                    <td>The "King of Wines," a powerful, complex, and long-lived red from the Langhe hills. Min. Alcohol: 13%. Max. Yields: 8 tons/ha. Elevation: 170-540 meters.</td>
+                    <td>Giacomo Conterno, Bartolo Mascarello, Luciano Sandrone</td>
+                </tr>
+                <tr>
+                    <td>Brachetto d'Acqui (Acqui) DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Rosso Spumante</td>
+                    <td>Min. 97% Brachetto</td>
+                    <td>No minimum aging specified beyond the production cycle.</td>
+                    <td>Calcareous clay, sand.</td>
+                    <td>An aromatic sweet sparkling red with notes of strawberry and rose petals. Min. Alcohol: 12% (6% actual). Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Marenco, Banfi (Rosa Regale), Bersano</td>
+                </tr>
+                <tr>
+                    <td>Brachetto d'Acqui (Acqui) DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Passito</td>
+                    <td>Min. 97% Brachetto</td>
+                    <td>May not be released before October 1 of the year following the harvest.</td>
+                    <td>Calcareous clay, sand.</td>
+                    <td>A rare, concentrated sweet red dessert wine. Min. Alcohol: 16% (11% actual). Min. Residual Sugar: 50 g/l. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Marenco, Braida di Giacomo Bologna</td>
+                </tr>
+                <tr>
+                    <td>Canelli DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Moscato</td>
+                    <td>100% Moscato Bianco</td>
+                    <td>No minimum aging specified.</td>
+                    <td>Calcareous marl, sandstone, clay.</td>
+                    <td>A new DOCG (est. 2023) for high-quality, low-pressure Moscato d'Asti from a specific subzone. Grapes must be hand-harvested. Min. Potential Alcohol: 11%. Finished Alcohol: 4.5-6.5%. Max. Yields: 9.5 tons/ha. Elevation: 165-500m.</td>
+                    <td>Coppo, Ceretto, La Caudrina</td>
+                </tr>
+                <tr>
+                    <td>Canelli DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>100% Moscato Bianco</td>
+                    <td>Minimum 30 months, including 20 months in bottle.</td>
+                    <td>Calcareous marl, sandstone, clay.</td>
+                    <td>A new DOCG (est. 2023) for high-quality, low-pressure Moscato d'Asti from a specific subzone. Grapes must be hand-harvested. Min. Potential Alcohol: 11%. Finished Alcohol: 4.5-6.5%. Max. Yields: 9.5 tons/ha. Elevation: 165-500m.</td>
+                    <td>Coppo, Ceretto, La Caudrina</td>
+                </tr>
+                <tr>
+                    <td>Dogliani DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Superiore</td>
+                    <td>100% Dolcetto</td>
+                    <td>12 months from October 15 of the harvest year.</td>
+                    <td>Calcareous or siliceous clay.</td>
+                    <td>Considered the "grand cru" for Dolcetto, producing structured, complex, and age-worthy versions. Min. Alcohol: 13%. Max. Yields: 7 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Luigi Einaudi, Marziano Abbona, Poderi Cellario</td>
+                </tr>
+                <tr>
+                    <td>Dolcetto di Diano d' Alba/Diano d' Alba DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Superiore</td>
+                    <td>100% Dolcetto</td>
+                    <td>release September 1st of the year following harvest</td>
+                    <td>Calcareous clay and limestone.</td>
+                    <td>Famous for its officially mapped *sorì* (sunny sites), yielding an intensely fruity and muscular Dolcetto. Min. Alcohol: 12%. Max. Yields: 8 tons/ha. Min. Planting Density: 3,500 vines/ha.</td>
+                    <td>Fontanafredda, Fratelli Savigliano, Il Palazzotto</td>
+                </tr>
+                <tr>
+                    <td>Dolcetto di Ovada Superiore (Ovada) DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Superiore Riserva</td>
+                    <td>100% Dolcetto</td>
+                    <td>minimum 24 months</td>
+                    <td>Clay, tufa, limestone.</td>
+                    <td>A structured and long-lived expression of Dolcetto. Min. Alcohol: 12.5%. Max. Yields: 7 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Tacchino, Gaggino, Rocca Rondinaria</td>
+                </tr>
+                <tr>
+                    <td>Erbaluce di Caluso/Caluso DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Passito Riserva</td>
+                    <td>100% Erbaluce</td>
+                    <td>48 months from November 1 of the harvest year.</td>
+                    <td>Glacial moraine (gravel, sand, clay).</td>
+                    <td>The Erbaluce grape's piercing acidity makes it incredibly versatile for crisp dry whites, sparkling wines, and a renowned passito. Min. Alcohol: 12.5% (17.0% potential). Min. Residual Sugar: 70 g/l. Max. Yields: 11 tons/ha.</td>
+                    <td>Ferrando, Favaro, Orsolani</td>
+                </tr>
+                <tr>
+                    <td>Gattinara DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>minimum 90% Spanna (Nebbiolo), maximum 10% Bonarda di Gattinara and/or Vespolina</td>
+                    <td>47 months, including 36 months in wood, from November 1 of the harvest year.</td>
+                    <td>Volcanic, porphyry, granite.</td>
+                    <td>An Alto Piemonte Nebbiolo known for its elegance and floral notes. Min. Alcohol: 13%. Max. Yields: 7.5 tons/ha. Min. Planting Density: 3,000 vines/ha. Vineyard Elevation: 250-550 meters.</td>
+                    <td>Travaglini, Nervi-Conterno, Antoniolo</td>
+                </tr>
+                <tr>
+                    <td>Gavi (Cortese di Gavi) DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>100% Cortese</td>
+                    <td>Must be aged a min. 1 year (including 6 months in bottle) from October 15th of the year of harvest.</td>
+                    <td>Limestone-rich clays ("terre bianche"), iron-rich red soils ("terre rosse").</td>
+                    <td>Piedmont's most famous still white wine, known for its crisp, mineral-driven character and notes of green apple. Min. Alcohol: 11%. Max. Yields: 6.5 tons/ha. Min. Planting Density: 3,300 vines/ha.</td>
+                    <td>La Scolca, Broglia, Villa Sparina</td>
+                </tr>
+                <tr>
+                    <td>Ghemme DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>minimum 85% Spanna (Nebbiolo), combined maximum 15% Vespolina and Uva Rara (Bonarda Novarese)</td>
+                    <td>minimum 46 months, including a minimum 24 months in wood and 6 months in bottle from November 1 of the harvest year.</td>
+                    <td>Alluvial, clay, sand, loam, stony.</td>
+                    <td>A structured Alto Piemonte Nebbiolo, often slightly broader than Gattinara. Min. Alcohol: 12.5%. Max. Yields: 8 tons/ha. Min. Planting Density: 2,900 vines/ha. Vineyard Elevation: 220-400 meters.</td>
+                    <td>Antichi Vigneti di Cantalupo, Rovellotti, Torraccia del Piantavigna</td>
+                </tr>
+                <tr>
+                    <td>Nizza DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>100% Barbera</td>
+                    <td>Minimum 30 months, including at least 12 months in oak, from January 1 of the year after harvest.</td>
+                    <td>Calcareous clay-marl ("Astiane sands"), loam, sand.</td>
+                    <td>The pinnacle of the Barbera grape, from a specific high-quality zone formerly a subzone of Barbera d'Asti. Min. Alcohol: 13%. Max. Yields: 7 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Tenuta Olim Bauda, Cascina Garitina, Michele Chiarlo</td>
+                </tr>
+                <tr>
+                    <td>Roero DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>minimum 95% Nebbiolo, Maximum 5% other non-aromatic red grapes of Piemonte</td>
+                    <td>minimum 32 months including 6 months in wood (released from July 1 of the third year following the harvest).</td>
+                    <td>Sand, calcareous clay, limestone.</td>
+                    <td>Known for its sandy soils, producing aromatic Arneis and perfumed Nebbiolo. Min. Alcohol: 12.5%. Max. Yields: 8 tons/ha. Min. Planting Density: 3,500 vines/ha.</td>
+                    <td>Bruno Giacosa, Malvirà, Matteo Correggia</td>
+                </tr>
+                <tr>
+                    <td>Ruchè di Castagnole Monferrato DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Riserva</td>
+                    <td>Min. 90% Ruchè, plus max. 10% combined Barbera and Brachetto</td>
+                    <td>minimum 24 months including 12 months in barrel.</td>
+                    <td>Tufa, limestone, clay.</td>
+                    <td>A rare, intensely aromatic grape with a unique profile of rose petals, geranium, and wild red berries. Min. Alcohol: 12.5%. Max. Yields: 9 tons/ha. Min. Planting Density: 4,000 vines/ha. Vineyard Elevation: 120-400 meters.</td>
+                    <td>Crivelli, Cantina Sant'Agata, Montalbera</td>
+                </tr>
+                <tr>
+                    <td>Terre Alfieri DOCG</td>
+                    <td>Piemonte</td>
+                    <td>Nebbiolo Riserva</td>
+                    <td>minimum 85% Nebbiolo</td>
+                    <td>min. 24 months, including 12 months in wood.</td>
+                    <td>Sandy marl, clay.</td>
+                    <td>A newer DOCG recognizing the quality of Arneis and Nebbiolo from this territory. Min. Alcohol: 12.5%. Max. Yields: 8.5 tons/ha. Min. Planting Density: 4000 vines/ha. Elevation: 130m - 350m.</td>
+                    <td>Marchesi Alfieri, Povero, Malabaila</td>
+                </tr>
+                <!-- Sardegna -->
+                <tr>
+                    <td>Vermentino di Gallura DOCG</td>
+                    <td>Sardegna</td>
+                    <td>Superiore</td>
+                    <td>Minimum 95% Vermentino, Maximum 5% other suitable non-aromatic white grapes</td>
+                    <td>Wines may not be released until January 15 of the year following the harvest.</td>
+                    <td>Decomposed granite, sand.</td>
+                    <td>Sardinia's only DOCG, from the granite soils of Gallura in the island's northeast. Min. Alcohol: 13%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,250 vines/ha. Max. Elevation: 500 meters.</td>
+                    <td>Capichera, Vigne Surrau, Jankara</td>
+                </tr>
+                <!-- Sicilia -->
+                <tr>
+                    <td>Cerasuolo di Vittoria DOCG</td>
+                    <td>Sicilia</td>
+                    <td>Classico</td>
+                    <td>50-70% Nero d'Avola (Calabrese), 30-50% Frappato</td>
+                    <td>May not be sold until March 31 of the second year following the harvest.</td>
+                    <td>Red sand, limestone, clay.</td>
+                    <td>Sicily's only DOCG. The Classico zone represents the historic heartland of the appellation. Min. Alcohol: 12.5%. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>COS, Planeta, Valle dell'Acate</td>
+                </tr>
+                <!-- Toscana -->
+                <tr>
+                    <td>Brunello di Montalcino DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>100% Sangiovese (locally known as Brunello)</td>
+                    <td>Minimum 2 years in oak plus 6 months in bottle, may not be sold before January 1 of the 6th year following the harvest.</td>
+                    <td>Galestro, clay, marine sediments.</td>
+                    <td>One of Italy's most famous and long-lived red wines. Min. Alcohol: 12.5%. Min. Acidity: 5 g/l. Max. Yields: 8 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Biondi-Santi, Soldera Case Basse, Poggio di Sotto</td>
+                </tr>
+                <tr>
+                    <td>Carmignano DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>Minimum 50% Sangiovese, 10-20% combined Cabernet Franc and Cabernet Sauvignon</td>
+                    <td>Minimum 12 months in oak or chestnut barrels, may not be sold before September 29 of the third year following the harvest.</td>
+                    <td>Clay, limestone, schist, alberese.</td>
+                    <td>Historically significant for mandating Cabernet in the blend. Min. Alcohol: 12.5%. Max. Yields: 8 tons/ha. Max. Elevation: 400 meters.</td>
+                    <td>Capezzana, Piaggia, Tenuta di Artimino</td>
+                </tr>
+                <tr>
+                    <td>Chianti Classico DOCG</td>
+                    <td>Toscana</td>
+                    <td>Gran Selezione</td>
+                    <td>80-100% Sangiovese, Maximum 20% other suitable red grapes</td>
+                    <td>Minimum 30 months aging from January 1 of the year following the harvest, including at least 3 months in the bottle.</td>
+                    <td>Galestro, Alberese, Macigno (sandstone).</td>
+                    <td>The top tier of Chianti Classico, made from estate-grown fruit. Min. Alcohol: 13%. Max. Residual Sugar: 4 g/l. Max. Yields: 7.5 tons/ha. Min. Planting Density: 4,400 vines/ha.</td>
+                    <td>Fontodi, Castell'in Villa, Isole e Olena</td>
+                </tr>
+                <tr>
+                    <td>Chianti DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva (Rufina Subzone)</td>
+                    <td>70-100% Sangiovese, Maximum 30% combined other suitable grapes</td>
+                    <td>Minimum 2 years aging from January 1 of the year following harvest, including a minimum 6 months in wood.</td>
+                    <td>Marl, limestone, clay.</td>
+                    <td>The Rufina subzone is known for its elegant, age-worthy wines due to higher altitudes. Min. Alcohol: 12.5%. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Fèlsina, Selvapiana, Badia a Coltibuono</td>
+                </tr>
+                <tr>
+                    <td>Elba Aleatico Passito (Aleatico Passito dell'Elba) DOCG</td>
+                    <td>Toscana</td>
+                    <td>Passito</td>
+                    <td>100% Aleatico</td>
+                    <td>May not be released until March 1 of the year following the harvest.</td>
+                    <td>Clay, schist, granite, iron-rich, sandy loam.</td>
+                    <td>A rare sweet red wine from the island of Elba. Grapes must be air-dried for min. 10 days to 30% sugar. Min. Alcohol: 19% (12% actual). Max. Yields: 7 tons/ha. Min. Planting Density: 5,000 vines/ha.</td>
+                    <td>Arrighi, Cecilia, Tenuta delle Ripalte</td>
+                </tr>
+                <tr>
+                    <td>Montecucco Sangiovese DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>Min. 90% Sangiovese, Max. 10% other suitable red grapes</td>
+                    <td>May not be released before September 1 of the third year after harvest (Min. 24 months in oak and 6 months in bottle).</td>
+                    <td>Volcanic, sandstone, clay.</td>
+                    <td>Situated between Montalcino and Scansano on the slopes of the Monte Amiata volcano. Min. Alcohol: 13.5%. Max. Yields: 7 tons/ha. Min. Planting Density: 3,300 vines/ha.</td>
+                    <td>ColleMassari, Castello di Potentino, Salustri</td>
+                </tr>
+                <tr>
+                    <td>Morellino di Scansano DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>Minimum 85% Sangiovese (Morellino), Maximum 15% other suitable red varieties</td>
+                    <td>Minimum 2 years from January 1 of the year following the harvest, including at least one year in wood.</td>
+                    <td>Sandstone, clay, limestone, alkaline.</td>
+                    <td>From the coastal Maremma, this is a riper, more fruit-forward style of Sangiovese. Min. Alcohol: 13%. Max. Yields: 9 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Fattoria Le Pupille, Morisoli, Podere 414</td>
+                </tr>
+                <tr>
+                    <td>Rosso della Val di Cornia (Val di Cornia Rosso) DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>Min. 40% Sangiovese, Max. 60% combined Merlot and Cabernet Sauvignon, Max. 20% other red grapes (except Aleatico)</td>
+                    <td>Wines may not be released until January 1 of the third year following the harvest. Min. 18 months in oak and min. 6 months in bottle.</td>
+                    <td>Clay, sand, limestone, schist.</td>
+                    <td>A coastal "Super Tuscan" style blend of Sangiovese with Bordeaux varieties. Min. Alcohol: 13%. Max. Yields: 9 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Tua Rita, Petra, Gualdo del Re</td>
+                </tr>
+                <tr>
+                    <td>Suvereto DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>Cabernet Sauvignon and/or Merlot, plus a max. 15% other red grapes suitable for cultivation in Toscana</td>
+                    <td>Wines may not be released until January 1 of the third year after harvest. Min. 18 months in oak, and min. 6 months in bottle.</td>
+                    <td>Clay, limestone, schist, sand.</td>
+                    <td>A "Super Tuscan" style DOCG allowing for both blends and monovarietal wines from international grapes. Min. Alcohol: 13%. Max. Yields: 9 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Tua Rita, Petra, Gualdo del Re</td>
+                </tr>
+                <tr>
+                    <td>Vernaccia di San Gimignano DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>Minimum 85% Vernaccia di San Gimignano, Maximum 15% other suitable non-aromatic white grapes</td>
+                    <td>Minimum 11 months from January 1 of the year following the harvest, including at least 3 months in bottle.</td>
+                    <td>Pliocene-era yellow sand and clay, limestone, tuff.</td>
+                    <td>Tuscany's most famous white wine, known for its crisp, savory character and almond finish. Min. Alcohol: 12.5%. Max. Yields: 9 tons/ha. Vineyard Elevation: maximum 500 meters.</td>
+                    <td>Panizzi, La Lastra, Montenidoli</td>
+                </tr>
+                <tr>
+                    <td>Vino Nobile di Montepulciano DOCG</td>
+                    <td>Toscana</td>
+                    <td>Riserva</td>
+                    <td>Minimum 70% Sangiovese (Prugnolo Gentile), Maximum 30% other suitable grapes (max 5% white grapes)</td>
+                    <td>Minimum 3 years aging, including at least 6 months in bottle, from January 1 of the year following the harvest.</td>
+                    <td>Volcanic, Sandstone, clay, marl, sand.</td>
+                    <td>A noble and historic red wine from the Prugnolo Gentile clone of Sangiovese. Min. Alcohol: 13%. Max. Yields: 8 tons/ha. Min. Planting Density: 3,300 vines/ha. Elevation: 250-600m.</td>
+                    <td>Avignonesi, Poliziano, Boscarelli</td>
+                </tr>
+                <!-- Umbria -->
+                <tr>
+                    <td>Montefalco Sagrantino DOCG</td>
+                    <td>Umbria</td>
+                    <td>Secco</td>
+                    <td>100% Sagrantino</td>
+                    <td>Minimum 37 months from December 1 of the harvest year, including at least 12 months in wood and 4 months in bottle.</td>
+                    <td>Clay, limestone, sand, marl.</td>
+                    <td>Made from one of Italy's most tannic grapes, producing powerful, dark, and long-lived red wines. Min. Alcohol: 13%. Max. Yields: 8 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Paolo Bea, Arnaldo Caprai, Tabarrini</td>
+                </tr>
+                <tr>
+                    <td>Torgiano Rosso Riserva DOCG</td>
+                    <td>Umbria</td>
+                    <td>Riserva</td>
+                    <td>Minimum 70% Sangiovese, Maximum 30% other suitable red grapes</td>
+                    <td>Minimum 3 years from November 1 of the harvest year, including at least 6 months in bottle.</td>
+                    <td>Clay, sand, limestone.</td>
+                    <td>A historic flag-bearer for Umbrian quality, this is an elegant, age-worthy Sangiovese blend. Min. Alcohol: 12.5%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,500 vines/ha.</td>
+                    <td>Lungarotti, Terre Margaritelli, MUV</td>
+                </tr>
+                <!-- Veneto -->
+                <tr>
+                    <td>Amarone della Valpolicella DOCG</td>
+                    <td>Veneto</td>
+                    <td>Riserva</td>
+                    <td>45-95% Corvina or Corvinone, 5-30% Rondinella, Maximum 25% other suitable red grapes</td>
+                    <td>Minimum 4 years from November 1 of the harvest year.</td>
+                    <td>Calcareous marl, clay, volcanic.</td>
+                    <td>A powerful, rich dry red made from grapes dried for several months (*appassimento*). Min. Alcohol: 14%. Max. Yields: 12 tons/ha. Min. Planting Density: 3,300 vines/ha.</td>
+                    <td>Giuseppe Quintarelli, Dal Forno Romano, Masi</td>
+                </tr>
+                <tr>
+                    <td>Asolo Prosecco (Asolo) DOCG</td>
+                    <td>Veneto</td>
+                    <td>Spumante Superiore Sui Lieviti</td>
+                    <td>Minimum 85% Glera, Maximum 15% other suitable varieties.</td>
+                    <td>Must be fermented in bottle and left undisgorged, minimum 90 days on lees.</td>
+                    <td>Marl, clay, conglomerate ("puddinga").</td>
+                    <td>High-quality Prosecco from the hills of Asolo. "Sui Lieviti" is an undisgorged, bottle-refermented style. Must be Brut Nature. Min. Alcohol: 11%. Max. Yields: 12 tons/ha.</td>
+                    <td>Bele Casel, Villa Sandi, Giusti Wine</td>
+                </tr>
+                <tr>
+                    <td>Bardolino Superiore DOCG</td>
+                    <td>Veneto</td>
+                    <td>Superiore Classico</td>
+                    <td>35-80% Corvina Veronese, 10-40% Rondinella, Maximum 15% Molinara, Max 20% other suitable red varieties</td>
+                    <td>Minimum one year from November 1 of the harvest year.</td>
+                    <td>Morainic (gravel, sand, clay), limestone.</td>
+                    <td>The highest quality designation for Bardolino, from the historic Classico zone on the shores of Lake Garda. Min. Alcohol: 12%. Max. Yields: 9 tons/ha. Min. Planting Density: 3,300 vines/ha.</td>
+                    <td>Le Fraghe, Guerrieri Rizzardi, Villa Calicantus</td>
+                </tr>
+                <tr>
+                    <td>Colli di Conegliano DOCG</td>
+                    <td>Veneto</td>
+                    <td>Rosso Riserva</td>
+                    <td>Min. 10% Cabernet Sauvignon, Min. 10% Cabernet Franc, Min. 10% Marzemino, 10-40% Merlot, Max. 20% other approved grapes</td>
+                    <td>Min. 36 months from November 1 of the harvest year, including at least 12 months in wood.</td>
+                    <td>Morainic, clay, limestone.</td>
+                    <td>A complex DOCG for various still and sweet wines from the Prosecco hills. Min. Alcohol: 13%. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Bellenda, Sorelle Bronca, Masottina</td>
+                </tr>
+                <tr>
+                    <td>Colli Euganei Fior d'Arancio DOCG</td>
+                    <td>Veneto</td>
+                    <td>Passito</td>
+                    <td>Min. 95% Moscato Giallo, Max. 5% Other suitable Aromatic Varieties</td>
+                    <td>Minimum one year from November 1 of the harvest year.</td>
+                    <td>Volcanic, marl, clay.</td>
+                    <td>A sweet, aromatic wine from Moscato Giallo grown in the volcanic Euganean Hills. Min. Alcohol: 15.5% (11% actual). Min. Residual Sugar: 50 g/l. Max. Yields: 12 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Vignalta, La Montecchia, Ca' Lustra</td>
+                </tr>
+                <tr>
+                    <td>Conegliano Valdobbiadene Prosecco DOCG</td>
+                    <td>Veneto</td>
+                    <td>Spumante Superiore Rive di...</td>
+                    <td>Minimum 85% Glera</td>
+                    <td>Must undergo a minimum of 30 days of secondary fermentation in autoclave.</td>
+                    <td>Morainic, sandstone, clay.</td>
+                    <td>"Rive" indicates a specific steep hillside vineyard, a cru concept for Prosecco. Must be hand-harvested. Min. Alcohol: 11.5%. Max. Yields: 13 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Nino Franco, Adami, Bisol1542</td>
+                </tr>
+                <tr>
+                    <td>Friularo di Bagnoli (Bagnoli Friularo) DOCG</td>
+                    <td>Veneto</td>
+                    <td>Classico Riserva</td>
+                    <td>Min. 90% Raboso Piave (Friularo), Max. 10% other suitable red grapes</td>
+                    <td>min. 24 months, including at least 12 months in barrel from November 1 of the harvest year.</td>
+                    <td>Alluvial, clay, silt, limestone.</td>
+                    <td>DOCG for the fiercely acidic Raboso Piave grape (Friularo), from the historic Classico zone. Min. Alcohol: 12.5%. Max. Yields: 11 tons/ha. Min. Planting Density: 2,500 vines/ha.</td>
+                    <td>Dominio di Bagnoli, Il Filò delle Vigne, Cantina Conselve</td>
+                </tr>
+                <tr>
+                    <td>Lison DOCG</td>
+                    <td>Veneto</td>
+                    <td>Classico</td>
+                    <td>Min. 85% Tai (Friulano), Max. 15% other non-aromatic white grapes</td>
+                    <td>May not be released before March 1 of the year following the harvest.</td>
+                    <td>Calcareous clay ("Caranto").</td>
+                    <td>An inter-regional DOCG with Friuli, centered on the historic "Classico" zone for the Tai (Friulano) grape. Min. Alcohol: 12.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 3,000 vines/ha.</td>
+                    <td>Borgo Stajnbech, Paladin, Masat</td>
+                </tr>
+                <tr>
+                    <td>Montello Rosso/Montello DOCG</td>
+                    <td>Veneto</td>
+                    <td>Superiore</td>
+                    <td>40-70% Cabernet Sauvignon, 30-60% combined Merlot, Cabernet Franc and/or Carmenère, Max. 15% other suitable non-aromatic red grapes</td>
+                    <td>Min. 24 months from November 1 of the harvest year, including at least 12 months in oak and at least 6 months in bottle.</td>
+                    <td>Ferretto (iron-rich red clay), marl.</td>
+                    <td>A high-quality Bordeaux-style red blend from the Montello hill. Min. Alcohol: 13%. Max. Yields: 10 tons/ha. Min. Planting Density: 3,500 vines/ha.</td>
+                    <td>Serafini & Vidotto, Giusti (Umberto I), Loredan Gasparini</td>
+                </tr>
+                <tr>
+                    <td>Piave Malanotte/Malanotte del Piave DOCG</td>
+                    <td>Veneto</td>
+                    <td>Rosso</td>
+                    <td>Min. 70% Raboso Piave, Max. 30% Raboso Veronese, Max. 5% Other suitable red grapes</td>
+                    <td>Min. 3 years from November 1 of the harvest year, including at least 12 months in barrel and 4 months in bottle.</td>
+                    <td>Gravel, sand, clay.</td>
+                    <td>An "Amarone-style" version of the Raboso grape, where 15-30% of the grapes must be dried. Min. Alcohol: 12.5%. Max. Residual Sugar: 8 g/l. Max. Yields: 12 tons/ha.</td>
+                    <td>Ornella Molon, Bonotto delle Tezze, Cecchetto</td>
+                </tr>
+                <tr>
+                    <td>Recioto della Valpolicella DOCG</td>
+                    <td>Veneto</td>
+                    <td>Classico</td>
+                    <td>45-95% Corvina and/or Corvinone, 5-30% Rondinella, Maximum 25% other suitable red grapes</td>
+                    <td>May not be released before September 1 of the year following the harvest.</td>
+                    <td>Calcareous clay, marl, volcanic.</td>
+                    <td>The sweet ancestor of Amarone, made from dried grapes where fermentation is stopped to retain natural sugar. Min. Alcohol: 12%. Min. Residual Sugar: approx. 50 g/l. Max. Yields: 12 tons/ha.</td>
+                    <td>Bertani, Tedeschi, Tommaso Bussola</td>
+                </tr>
+                <tr>
+                    <td>Recioto di Gambellara DOCG</td>
+                    <td>Veneto</td>
+                    <td>Classico</td>
+                    <td>100% Garganega</td>
+                    <td>May not be released until September 1 of the year following the harvest.</td>
+                    <td>Volcanic (basaltic tuff).</td>
+                    <td>A sweet white wine from dried Garganega grapes grown in the volcanic Classico zone of Gambellara. Min. Alcohol: 14% potential (11.5% actual). Max. Yields: 6.25 tons/ha.</td>
+                    <td>La Biancara, Angiolino Maule, Cavazza</td>
+                </tr>
+                <tr>
+                    <td>Recioto di Soave DOCG</td>
+                    <td>Veneto</td>
+                    <td>Classico</td>
+                    <td>Minimum 70% Garganega, Maximum 30% Trebbiano di Soave</td>
+                    <td>May not be released before September 1 of the year following the harvest.</td>
+                    <td>Volcanic, limestone, clay.</td>
+                    <td>The sweet counterpart to Soave, made from dried Garganega grapes from the historic Classico zone. Min. Alcohol: 12%. Min. Residual Sugar: 70 g/l. Max. Yields: 9 tons/ha. Min. Planting Density: 3,300 vines/ha.</td>
+                    <td>Pieropan, Anselmi, Gini</td>
+                </tr>
+                <tr>
+                    <td>Soave Superiore DOCG</td>
+                    <td>Veneto</td>
+                    <td>Riserva</td>
+                    <td>Minimum 70% Garganega, Maximum 30% combined Trebbiano di Soave and Chardonnay, Maximum 5% other suitable white non-aromatic grapes</td>
+                    <td>May not be released until November 1 of the year following the harvest.</td>
+                    <td>Volcanic, limestone.</td>
+                    <td>The highest quality designation for dry, still Soave from the hillside vineyards. Min. Alcohol: 12.5%. Max. Yields: 10 tons/ha. Min. Planting Density: 4,000 vines/ha.</td>
+                    <td>Pieropan, Inama, Suavia</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const gameContainer = document.getElementById('game-container');
+            const welcomeModal = document.getElementById('welcome-modal');
+            const resultModal = document.getElementById('result-modal');
+            const winModal = document.getElementById('win-modal');
+            const studyModal = document.getElementById('study-modal');
+            const nextQuestionBtn = document.getElementById('next-question-btn');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const studyBtnWelcome = document.getElementById('study-btn-welcome');
+            const studyBtnGame = document.getElementById('study-btn-game');
+            const closeStudyModalBtn = document.getElementById('close-study-modal-btn');
+            const studyContent = document.getElementById('study-content');
+            const docgNameEl = document.getElementById('docg-name');
+            const questionPromptEl = document.getElementById('question-prompt');
+            const optionsContainer = document.getElementById('options-container');
+            const feedbackArea = document.getElementById('feedback-area');
+            const scoreEl = document.getElementById('score');
+            const masteredCountEl = document.getElementById('mastered-count');
+            const roundCounterEl = document.getElementById('round-counter');
+            const progressBar = document.getElementById('progress-bar');
+            const resultDocgNameEl = document.getElementById('result-docg-name');
+            const resultSoilsEl = document.getElementById('result-soils');
+            const resultNotesEl = document.getElementById('result-notes');
+            const resultProducersEl = document.getElementById('result-producers');
+            const finalScoreEl = document.getElementById('final-score');
+            const finalPerfectRoundsEl = document.getElementById('final-perfect-rounds');
+
+            // --- Game State & Config ---
+            let docgData = [];
+            let allRegions = [], allSoils = [], allProducers = [];
+            let score = 0;
+            let perfectRounds = 0;
+            let currentDocg = null;
+            let currentQuestionPart = 1;
+            let firstAttemptInRound = true;
+            let roundCounter = 0;
+            let gameMode = 'hard';
+            let maxQuestionPart = 3;
+            const MAX_ROUNDS = 20;
+
+            const modeSettings = {
+                easy:       { parts: 1, sequence: ['region'] },
+                intermediate: { parts: 2, sequence: ['region', 'varietals'] },
+                hard:       { parts: 3, sequence: ['region', 'varietals', 'aging'] },
+                expert:     { parts: 4, sequence: ['region', 'varietals', 'aging', 'soils'] },
+                insane:     { parts: 5, sequence: ['region', 'varietals', 'aging', 'soils', 'producers'] }
+            };
+
+            // --- Functions ---
+
+            /**
+             * Parses the DOCG data from the hidden HTML table into a structured array of objects.
+             */
+            function parseData() {
+                const table = document.querySelector("#database table");
+                const rows = table.querySelectorAll("tbody tr");
+                const data = [];
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll("td");
+                    data.push({
+                        name: cells[0].textContent.trim(),
+                        region: cells[1].textContent.trim(),
+                        style: cells[2].textContent.trim(),
+                        varietals: cells[3].textContent.trim(),
+                        aging: cells[4].textContent.trim(),
+                        soils: cells[5].textContent.trim(),
+                        notes: cells[6].textContent.trim(),
+                        producers: cells[7].textContent.trim(),
+                        id: `${cells[0].textContent.trim()} - ${cells[2].textContent.trim()}`
+                    });
+                });
+                allRegions = [...new Set(data.map(d => d.region))];
+                allSoils = [...new Set(data.map(d => d.soils))];
+                allProducers = [...new Set(data.map(d => d.producers))];
+                return data;
+            }
+
+            /**
+             * Shuffles an array in place.
+             * @param {Array} array The array to shuffle.
+             */
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+            
+            /**
+             * Initializes the game state, resets scores, and starts the first round.
+             */
+            function initGame(mode) {
+                gameMode = mode;
+                maxQuestionPart = modeSettings[gameMode].parts;
+                score = 0;
+                perfectRounds = 0;
+                roundCounter = 0;
+                docgData = parseData();
+                
+                updateScore();
+                welcomeModal.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                winModal.classList.add('hidden');
+                resultModal.classList.add('hidden');
+                
+                nextRound();
+            }
+
+            /**
+             * Selects a new DOCG and starts the next round. Ends game if MAX_ROUNDS is reached.
+             */
+            function nextRound() {
+                roundCounter++;
+                if (roundCounter > MAX_ROUNDS) {
+                    showGameOverScreen();
+                    return;
+                }
+                
+                currentDocg = docgData[Math.floor(Math.random() * docgData.length)];
+                currentQuestionPart = 1;
+                firstAttemptInRound = true;
+                
+                updateScore();
+                displayQuestion();
+            }
+
+            /**
+             * Displays the current question part based on the selected game mode.
+             */
+            function displayQuestion() {
+                feedbackArea.textContent = '';
+                optionsContainer.innerHTML = '';
+                docgNameEl.textContent = `${currentDocg.name} (${currentDocg.style})`;
+                
+                const questionType = modeSettings[gameMode].sequence[currentQuestionPart - 1];
+
+                switch (questionType) {
+                    case 'region':    displayRegionQuestion(); break;
+                    case 'varietals': displayVarietalQuestion(); break;
+                    case 'aging':     displayAgingQuestion(); break;
+                    case 'soils':     displaySoilsQuestion(); break;
+                    case 'producers': displayProducersQuestion(); break;
+                }
+            }
+
+            function displayRegionQuestion() {
+                questionPromptEl.textContent = "Which region is this DOCG in?";
+                const correctAnswer = { text: currentDocg.region, correct: true };
+                renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'region')]);
+            }
+
+            function displayVarietalQuestion() {
+                questionPromptEl.textContent = "What are its varietal requirements?";
+                const correctAnswer = { text: currentDocg.varietals, correct: true };
+                renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'varietals')]);
+            }
+
+            function displayAgingQuestion() {
+                questionPromptEl.textContent = "What are the minimum aging requirements?";
+                const correctAnswer = { text: currentDocg.aging, correct: true };
+                renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'aging')]);
+            }
+            
+            function displaySoilsQuestion() {
+                questionPromptEl.textContent = "What are the principal soils?";
+                const correctAnswer = { text: currentDocg.soils, correct: true };
+                renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'soils')]);
+            }
+
+            function displayProducersQuestion() {
+                questionPromptEl.textContent = "Which of these are representative producers?";
+                const correctAnswer = { text: currentDocg.producers, correct: true };
+                renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'producers')]);
+            }
+
+            /**
+             * Renders the multiple-choice option buttons.
+             * @param {Array} options Array of option objects to display.
+             */
+            function renderOptions(options) {
+                shuffleArray(options);
+                optionsContainer.innerHTML = '';
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = "btn-option w-full p-4 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-500";
+                    button.innerHTML = option.text;
+                    button.dataset.correct = option.correct; // Add data attribute for correct answer
+                    button.onclick = () => handleAnswer(option.correct, button);
+                    optionsContainer.appendChild(button);
+                });
+            }
+
+            /**
+             * Generates unique incorrect options for a given question type.
+             */
+            function getIncorrectOptions(correctDocg, type) {
+                const incorrect = [];
+                let potentialOptions = [];
+                let sourceArray = [];
+
+                switch(type) {
+                    case 'region': sourceArray = allRegions; break;
+                    case 'soils': sourceArray = allSoils; break;
+                    case 'producers': sourceArray = allProducers; break;
+                    default: // for varietals, aging
+                        sourceArray = [...new Set(docgData.map(d => d[type]))];
+                }
+                
+                potentialOptions = sourceArray.filter(item => item !== correctDocg[type]);
+                shuffleArray(potentialOptions);
+
+                for (let i = 0; i < Math.min(3, potentialOptions.length); i++) {
+                    incorrect.push({ text: potentialOptions[i], correct: false });
+                }
+                
+                return incorrect;
+            }
+
+            /**
+             * Handles the player's answer selection, provides feedback, and advances the game.
+             */
+            function handleAnswer(isCorrect, button) {
+                const buttons = optionsContainer.querySelectorAll('button');
+                buttons.forEach(btn => btn.disabled = true);
+
+                if (isCorrect) {
+                    button.classList.add('btn-correct');
+                    feedbackArea.textContent = "Correct!";
+                    feedbackArea.className = 'mt-6 text-xl font-medium text-green-600';
+                    score += 5; 
+                    updateScore();
+
+                    setTimeout(() => {
+                        if (currentQuestionPart < maxQuestionPart) {
+                            currentQuestionPart++;
+                            displayQuestion();
+                        } else { 
+                            if (firstAttemptInRound) {
+                                perfectRounds++;
+                                score += 15; 
+                            }
+                            updateScore();
+                            showResultModal();
+                        }
+                    }, 1200);
+
+                } else {
+                    button.classList.add('btn-incorrect');
+                    const correctButton = optionsContainer.querySelector('button[data-correct="true"]');
+                    if (correctButton) correctButton.classList.add('btn-correct');
+                    
+                    feedbackArea.textContent = "Not quite. Here's the correct info.";
+                    feedbackArea.className = 'mt-6 text-xl font-medium text-red-600';
+                    firstAttemptInRound = false; 
+
+                    setTimeout(() => {
+                        showResultModal(); 
+                    }, 2000);
+                }
+            }
+            
+            /**
+             * Updates the score and progress bar on the UI.
+             */
+            function updateScore() {
+                scoreEl.textContent = score;
+                roundCounterEl.textContent = roundCounter > MAX_ROUNDS ? MAX_ROUNDS : roundCounter;
+                masteredCountEl.textContent = perfectRounds;
+                const progress = ((roundCounter -1) / MAX_ROUNDS) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            /**
+             * Shows the modal with details about the completed DOCG.
+             */
+            function showResultModal() {
+                resultDocgNameEl.textContent = `${currentDocg.name} (${currentDocg.style})`;
+                resultSoilsEl.textContent = currentDocg.soils;
+                resultNotesEl.textContent = currentDocg.notes;
+                resultProducersEl.textContent = currentDocg.producers;
+                
+                if(roundCounter >= MAX_ROUNDS) {
+                    nextQuestionBtn.textContent = "Finish Game";
+                } else {
+                    nextQuestionBtn.textContent = "Next Round";
+                }
+
+                resultModal.classList.remove('hidden');
+            }
+            
+            /**
+             * Shows the final game over screen.
+             */
+            function showGameOverScreen() {
+                finalScoreEl.textContent = score;
+                finalPerfectRoundsEl.textContent = perfectRounds;
+                gameContainer.classList.add('hidden');
+                winModal.classList.remove('hidden');
+            }
+
+            /** Opens the study modal and populates it with the database table. */
+            function openStudyModal() {
+                studyContent.innerHTML = ''; // Clear previous content
+                const table = document.querySelector("#database table").cloneNode(true);
+                studyContent.appendChild(table);
+                studyModal.classList.remove('hidden');
+            }
+
+            /** Closes the study modal. */
+            function closeStudyModal() {
+                studyModal.classList.add('hidden');
+            }
+
+            // --- Event Listeners ---
+            document.querySelectorAll('.mode-select-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const mode = e.target.dataset.mode;
+                    initGame(mode);
+                });
+            });
+            
+            nextQuestionBtn.addEventListener('click', () => {
+                resultModal.classList.add('hidden');
+                nextRound();
+            });
+
+            playAgainBtn.addEventListener('click', () => {
+                 winModal.classList.add('hidden');
+                 welcomeModal.classList.remove('hidden');
+            });
+
+            studyBtnWelcome.addEventListener('click', openStudyModal);
+            studyBtnGame.addEventListener('click', openStudyModal);
+            closeStudyModalBtn.addEventListener('click', closeStudyModal);
+
+        });
+    </script>
+</body>
+</html>
