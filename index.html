@@ -65,6 +65,19 @@
         #study-modal tr:nth-child(even) {
             background-color: #f1f5f9;
         }
+        
+        /* Shake animation for Easy mode incorrect answers */
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .shake {
+          animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+          border-color: #ef4444; /* red-500 */
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
@@ -91,15 +104,13 @@
             <p id="question-prompt" class="text-xl font-semibold text-gray-800 mb-2"></p>
             <div id="style-counter-area" class="text-lg font-medium text-gray-600 mb-4"></div>
             <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Options will be dynamically inserted here -->
-            </div>
+                </div>
         </div>
         
         <div id="feedback-area" class="mt-6 text-xl font-medium"></div>
 
     </div>
 
-    <!-- Welcome Modal -->
     <div id="welcome-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full text-center">
             <h2 class="font-playfair text-3xl font-bold mb-4">Welcome to DOCG Master!</h2>
@@ -115,29 +126,45 @@
         </div>
     </div>
 
-    <!-- Result Modal -->
     <div id="result-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-left">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-left overflow-auto max-h-[90vh]">
             <h2 id="result-docg-name" class="font-playfair text-3xl font-bold mb-4"></h2>
             <div class="text-gray-700 space-y-4">
-                <div>
+                
+                <div id="insane-message-section" class="hidden p-4 rounded-lg bg-red-50 border border-red-200">
+                     <p id="insane-message-content" class="text-center font-medium"></p>
+                </div>
+
+                <div id="easy-mode-styles-section" class="hidden">
+                    <h3 class="font-semibold text-lg">Styles & Aging:</h3>
+                    <div id="easy-mode-styles-content" class="mt-2 text-sm"></div>
+                </div>
+
+                <div id="notes-section" class="hidden">
                     <h3 class="font-semibold text-lg">Notes:</h3>
-                    <p id="result-notes"></p>
+                    <p id="result-notes" class="text-sm"></p>
                 </div>
-                <div id="soils-section">
+
+                <div id="soils-section" class="hidden">
                     <h3 class="font-semibold text-lg">Principal Soils:</h3>
-                    <p id="result-soils"></p>
+                    <p id="result-soils" class="text-sm"></p>
                 </div>
-                <div id="producers-section">
+                
+                <div id="technicals-section" class="hidden">
+                    <h3 class="font-semibold text-lg">Technicals:</h3>
+                    <p id="result-technicals" class="text-sm"></p>
+                </div>
+
+                <div id="producers-section" class="hidden">
                     <h3 class="font-semibold text-lg">Representative Producers:</h3>
-                    <p id="result-producers"></p>
+                    <p id="result-producers" class="text-sm"></p>
                 </div>
+
             </div>
             <button id="next-question-btn" class="mt-8 w-full bg-red-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-800 transition-colors">Next Round</button>
         </div>
     </div>
     
-    <!-- Game Over Modal -->
     <div id="win-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
             <h2 class="font-playfair text-4xl font-bold mb-4 text-green-600">Complimenti!</h2>
@@ -148,7 +175,6 @@
         </div>
     </div>
 
-    <!-- Study Modal -->
     <div id="study-modal" class="fixed inset-0 bg-black bg-opacity-70 p-4 sm:p-6 md:p-8 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full h-full flex flex-col p-6">
             <div class="flex justify-between items-center mb-4">
@@ -156,17 +182,14 @@
                 <button id="close-study-modal-btn" class="text-2xl font-bold hover:text-red-600">&times;</button>
             </div>
             <div id="study-content" class="overflow-auto flex-grow">
-                <!-- Database table will be injected here -->
-            </div>
+                </div>
         </div>
     </div>
 
 
-    <!-- This is the database provided by the user, hidden from view -->
     <div id="database" class="hidden">
         <table>
-            <!-- The new database content will be injected here by the script -->
-        </table>
+            </table>
     </div>
 
     <script>
@@ -197,30 +220,34 @@
             const resultSoilsEl = document.getElementById('result-soils');
             const resultNotesEl = document.getElementById('result-notes');
             const resultProducersEl = document.getElementById('result-producers');
+            const resultTechnicalsEl = document.getElementById('result-technicals');
             const finalScoreEl = document.getElementById('final-score');
             const finalPerfectRoundsEl = document.getElementById('final-perfect-rounds');
 
             // --- Game State & Config ---
             let docgData = [];
             let docgStylesMap = {};
-            let allRegions = [], allSoils = [], allProducers = [], allStyles = [];
+            let allRegions = [], allSoils = [], allProducers = [], allStyles = [], allVarietals = [], allAgings = [], allTechnicals = [];
+            let performanceTracker = {}; // For adaptive learning
             let score = 0;
             let perfectRounds = 0;
             let currentDocg = null;
             let currentQuestionPart = 1;
-            let firstAttemptInRound = true;
+            let isRoundPerfect = true; // Tracks if any mistake was made in a multi-part round
             let roundCounter = 0;
             let gameMode = 'hard';
             let maxQuestionPart = 3;
             let correctStylesRemaining = 0;
+            let roundCorrectAnswers = 0;
+            let roundTotalQuestions = 0;
             const MAX_ROUNDS = 20;
 
             const modeSettings = {
-                easy:       { parts: 2, sequence: ['region', 'styles'] },
-                intermediate: { parts: 2, sequence: ['region', 'varietals'] },
-                hard:       { parts: 3, sequence: ['region', 'varietals', 'aging'] },
-                expert:     { parts: 4, sequence: ['region', 'varietals', 'aging', 'soils'] },
-                insane:     { parts: 5, sequence: ['region', 'varietals', 'aging', 'soils', 'producers'] }
+                easy:         { parts: 2, sequence: ['region', 'styles'] },
+                intermediate: { parts: 2, sequence: ['varietals', 'aging'] },
+                hard:         { parts: 4, sequence: ['region', 'varietals', 'aging', 'soils'] },
+                expert:       { parts: 5, sequence: ['region', 'varietals', 'aging', 'soils', 'technicals'] },
+                insane:       { parts: 6, sequence: ['region', 'varietals', 'aging', 'soils', 'technicals', 'producers'] }
             };
 
             // --- NEW DATABASE ---
@@ -463,14 +490,18 @@
                 const rows = table.querySelectorAll("tbody tr");
                 const data = [];
                 docgStylesMap = {};
+                performanceTracker = {}; // Reset tracker
+                
+                const uniqueDocgNames = new Set();
+                
                 rows.forEach(row => {
                     const cells = row.querySelectorAll("td");
-                    // Skip if row is malformed
                     if (cells.length < 9) return;
                     
                     const docgName = cells[0].textContent.trim();
                     const style = cells[2].textContent.trim();
-                    data.push({
+
+                    const docgRecord = {
                         name: docgName,
                         region: cells[1].textContent.trim(),
                         style: style,
@@ -478,19 +509,41 @@
                         aging: cells[4].textContent.trim(),
                         soils: cells[5].textContent.trim(),
                         notes: cells[6].textContent.trim(),
+                        technicals: cells[7].textContent.trim(),
                         producers: cells[8].textContent.trim(),
                         id: `${docgName} - ${style}`
-                    });
+                    };
+
+                    data.push(docgRecord);
+                    uniqueDocgNames.add(docgName);
+
+                    // Initialize performance tracker for each specific wine style
+                    if (!performanceTracker[docgRecord.id]) {
+                        performanceTracker[docgRecord.id] = { correct: 0, incorrect: 0, weight: 5 };
+                    }
+                    
                     // Group styles by DOCG name
                     if (!docgStylesMap[docgName]) {
                         docgStylesMap[docgName] = [];
                     }
                     docgStylesMap[docgName].push(style);
                 });
-                allRegions = [...new Set(data.map(d => d.region))];
-                allSoils = [...new Set(data.map(d => d.soils))];
-                allProducers = [...new Set(data.map(d => d.producers))];
-                allStyles = [...new Set(data.map(d => d.style))];
+                
+                // Initialize performance tracker for Easy Mode (by DOCG name)
+                uniqueDocgNames.forEach(name => {
+                    if (!performanceTracker[name]) {
+                        performanceTracker[name] = { correct: 0, incorrect: 0, weight: 5 };
+                    }
+                });
+
+                allRegions = [...new Set(data.map(d => d.region).filter(Boolean))];
+                allSoils = [...new Set(data.map(d => d.soils).filter(Boolean))];
+                allProducers = [...new Set(data.map(d => d.producers).filter(Boolean))];
+                allStyles = [...new Set(data.map(d => d.style).filter(Boolean))];
+                allVarietals = [...new Set(data.map(d => d.varietals).filter(Boolean))];
+                allAgings = [...new Set(data.map(d => d.aging).filter(Boolean))];
+                allTechnicals = [...new Set(data.map(d => d.technicals).filter(Boolean))];
+                
                 return data;
             }
 
@@ -514,7 +567,7 @@
                 score = 0;
                 perfectRounds = 0;
                 roundCounter = 0;
-                docgData = parseData();
+                docgData = parseData(); // This also resets the performance tracker
                 
                 updateScore();
                 welcomeModal.classList.add('hidden');
@@ -524,9 +577,35 @@
                 
                 nextRound();
             }
+            
+            /**
+             * Selects the next DOCG based on a weighted random selection.
+             * Items answered incorrectly have a higher weight.
+             */
+            function selectNextDocg() {
+                const selectionPool = [];
+                const itemsToSelectFrom = gameMode === 'easy' ? Object.keys(docgStylesMap) : docgData.map(d => d.id);
+                
+                itemsToSelectFrom.forEach(itemId => {
+                    const performance = performanceTracker[itemId] || { weight: 5 };
+                    for (let i = 0; i < performance.weight; i++) {
+                        selectionPool.push(itemId);
+                    }
+                });
+                
+                shuffleArray(selectionPool);
+                const selectedId = selectionPool[Math.floor(Math.random() * selectionPool.length)];
+
+                if (gameMode === 'easy') {
+                    // Find the first record that matches the selected DOCG name
+                    return docgData.find(d => d.name === selectedId);
+                } else {
+                    return docgData.find(d => d.id === selectedId);
+                }
+            }
 
             /**
-             * Selects a new DOCG and starts the next round. Ends game if MAX_ROUNDS is reached.
+             * Starts the next round. Ends game if MAX_ROUNDS is reached.
              */
             function nextRound() {
                 roundCounter++;
@@ -535,9 +614,11 @@
                     return;
                 }
                 
-                currentDocg = docgData[Math.floor(Math.random() * docgData.length)];
+                currentDocg = selectNextDocg();
                 currentQuestionPart = 1;
-                firstAttemptInRound = true;
+                isRoundPerfect = true; // Reset for the new round
+                roundCorrectAnswers = 0;
+                roundTotalQuestions = 0;
                 
                 updateScore();
                 displayQuestion();
@@ -551,6 +632,12 @@
                 optionsContainer.innerHTML = '';
                 styleCounterArea.innerHTML = '';
                 
+                // Increment question counter for all modes except Easy's style question (handled separately)
+                const isEasyStyleQuestion = gameMode === 'easy' && currentQuestionPart === 2;
+                if (!isEasyStyleQuestion) {
+                     roundTotalQuestions++;
+                }
+
                 if (gameMode === 'easy') {
                     docgNameEl.textContent = currentDocg.name;
                 } else {
@@ -565,6 +652,7 @@
                     case 'varietals': displayVarietalQuestion(); break;
                     case 'aging':     displayAgingQuestion(); break;
                     case 'soils':     displaySoilsQuestion(); break;
+                    case 'technicals':displayTechnicalsQuestion(); break;
                     case 'producers': displayProducersQuestion(); break;
                 }
             }
@@ -581,6 +669,9 @@
                 const correctStyles = docgStylesMap[currentDocg.name];
                 correctStylesRemaining = correctStyles.length;
                 
+                // For scoring purposes
+                roundTotalQuestions = correctStyles.length;
+
                 let incorrectStyles = allStyles.filter(s => !correctStyles.includes(s));
                 shuffleArray(incorrectStyles);
                 incorrectStyles = incorrectStyles.slice(0, 5); // Add 5 red herrings
@@ -622,6 +713,13 @@
                 const correctAnswer = { text: currentDocg.soils, correct: true };
                 renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'soils')]);
             }
+            
+            function displayTechnicalsQuestion() {
+                optionsContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+                questionPromptEl.textContent = "What are the technical requirements?";
+                const correctAnswer = { text: currentDocg.technicals, correct: true };
+                renderOptions([correctAnswer, ...getIncorrectOptions(currentDocg, 'technicals')]);
+            }
 
             function displayProducersQuestion() {
                 optionsContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
@@ -641,35 +739,52 @@
                     const button = document.createElement('button');
                     button.className = "btn-option w-full p-4 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-500";
                     button.innerHTML = option.text;
-                    button.dataset.correct = option.correct; // Add data attribute for correct answer
+                    button.dataset.correct = option.correct;
                     button.onclick = () => handleAnswer(option.correct, button);
                     optionsContainer.appendChild(button);
                 });
             }
 
+            /**
+             * Handles multi-select style question answers (Easy Mode)
+             */
             function handleStyleSelection(isCorrect, button) {
                 button.disabled = true;
+                const trackerId = currentDocg.name; // Use DOCG name for Easy Mode tracking
+
                 if (isCorrect) {
                     button.classList.add('btn-correct');
                     correctStylesRemaining--;
+                    roundCorrectAnswers++;
                     score += 2;
                     updateScore();
                     updateStyleCounter();
+                    
                     if (correctStylesRemaining === 0) {
                         feedbackArea.textContent = "All styles found!";
                         feedbackArea.className = 'mt-6 text-xl font-medium text-green-600';
+                        
+                        // Update performance tracker for a successful completion
+                        if (isRoundPerfect) {
+                           performanceTracker[trackerId].correct++;
+                           performanceTracker[trackerId].weight = Math.max(1, performanceTracker[trackerId].weight - 2);
+                           perfectRounds++;
+                           score += 15;
+                        }
+                        updateScore();
+
                         setTimeout(() => {
-                           if (firstAttemptInRound) {
-                                perfectRounds++;
-                                score += 15; 
-                            }
-                            updateScore();
-                            showResultModal();
+                           showResultModal();
                         }, 1500);
                     }
                 } else {
-                    button.classList.add('btn-incorrect');
-                    firstAttemptInRound = false;
+                    isRoundPerfect = false;
+                    button.classList.add('shake');
+                    setTimeout(() => button.classList.remove('shake'), 1500);
+
+                    // Mark the entire DOCG as having a mistake for adaptive learning
+                    performanceTracker[trackerId].incorrect++;
+                    performanceTracker[trackerId].weight = Math.min(10, performanceTracker[trackerId].weight + 3);
                 }
             }
 
@@ -682,22 +797,23 @@
              */
             function getIncorrectOptions(correctDocg, type) {
                 const incorrect = [];
-                let potentialOptions = [];
                 let sourceArray = [];
 
                 switch(type) {
-                    case 'region': sourceArray = allRegions; break;
-                    case 'soils': sourceArray = allSoils; break;
+                    case 'region':    sourceArray = allRegions; break;
+                    case 'soils':     sourceArray = allSoils; break;
                     case 'producers': sourceArray = allProducers; break;
-                    default: // for varietals, aging
-                        sourceArray = [...new Set(docgData.map(d => d[type]))];
+                    case 'varietals': sourceArray = allVarietals; break;
+                    case 'aging':     sourceArray = allAgings; break;
+                    case 'technicals':sourceArray = allTechnicals; break;
+                    default:          sourceArray = [];
                 }
                 
-                potentialOptions = sourceArray.filter(item => item !== correctDocg[type]);
+                let potentialOptions = sourceArray.filter(item => item && item !== correctDocg[type]);
                 shuffleArray(potentialOptions);
 
-                for (let i = 0; i < Math.min(3, potentialOptions.length); i++) {
-                    incorrect.push({ text: potentialOptions[i], correct: false });
+                while (incorrect.length < 3 && potentialOptions.length > 0) {
+                     incorrect.push({ text: potentialOptions.pop(), correct: false });
                 }
                 
                 return incorrect;
@@ -709,13 +825,21 @@
             function handleAnswer(isCorrect, button) {
                 const buttons = optionsContainer.querySelectorAll('button');
                 buttons.forEach(btn => btn.disabled = true);
+                
+                const trackerId = gameMode === 'easy' ? currentDocg.name : currentDocg.id;
 
                 if (isCorrect) {
                     button.classList.add('btn-correct');
                     feedbackArea.textContent = "Correct!";
                     feedbackArea.className = 'mt-6 text-xl font-medium text-green-600';
-                    score += 5; 
+                    score += 5;
+                    roundCorrectAnswers++;
                     updateScore();
+                    
+                    performanceTracker[trackerId].correct++;
+                    if(performanceTracker[trackerId].correct > performanceTracker[trackerId].incorrect) {
+                         performanceTracker[trackerId].weight = Math.max(1, performanceTracker[trackerId].weight - 2);
+                    }
                 } else {
                     button.classList.add('btn-incorrect');
                     const correctButton = optionsContainer.querySelector('button[data-correct="true"]');
@@ -723,7 +847,10 @@
                     
                     feedbackArea.textContent = "Not quite. Let's continue...";
                     feedbackArea.className = 'mt-6 text-xl font-medium text-red-600';
-                    firstAttemptInRound = false; 
+                    isRoundPerfect = false;
+                    
+                    performanceTracker[trackerId].incorrect++;
+                    performanceTracker[trackerId].weight = Math.min(10, performanceTracker[trackerId].weight + 3);
                 }
 
                 setTimeout(() => {
@@ -731,9 +858,9 @@
                         currentQuestionPart++;
                         displayQuestion();
                     } else { 
-                        if (firstAttemptInRound) {
+                        if (isRoundPerfect) {
                             perfectRounds++;
-                            score += 15; 
+                            score += 15;
                         }
                         updateScore();
                         showResultModal();
@@ -753,26 +880,71 @@
             }
 
             /**
-             * Shows the modal with details about the completed DOCG.
+             * Shows the modal with details about the completed DOCG, customized by game mode.
              */
             function showResultModal() {
-                resultDocgNameEl.textContent = `${currentDocg.name}`;
-                resultNotesEl.textContent = currentDocg.notes;
-                resultSoilsEl.textContent = currentDocg.soils;
-                resultProducersEl.textContent = currentDocg.producers;
+                 // 1. Hide all sections by default
+                document.getElementById('notes-section').style.display = 'none';
+                document.getElementById('soils-section').style.display = 'none';
+                document.getElementById('producers-section').style.display = 'none';
+                document.getElementById('technicals-section').style.display = 'none';
+                document.getElementById('easy-mode-styles-section').style.display = 'none';
+                document.getElementById('insane-message-section').style.display = 'none';
+                
+                // Populate base info
+                resultDocgNameEl.textContent = currentDocg.name;
+                
+                // 3. Switch statement to show correct sections
+                switch (gameMode) {
+                    case 'easy':
+                        const allStylesForDocg = docgData.filter(d => d.name === currentDocg.name);
+                        let easyModeHtml = '<ul class="list-disc list-inside space-y-2">';
+                        allStylesForDocg.forEach(style => {
+                            easyModeHtml += `<li><strong>${style.style}:</strong> ${style.aging}</li>`;
+                        });
+                        easyModeHtml += '</ul>';
+                        document.getElementById('easy-mode-styles-content').innerHTML = easyModeHtml;
+                        document.getElementById('easy-mode-styles-section').style.display = 'block';
+                        break;
 
-                const soilsSection = document.getElementById('soils-section');
-                const producersSection = document.getElementById('producers-section');
+                    case 'intermediate':
+                        resultNotesEl.textContent = currentDocg.notes;
+                        resultSoilsEl.textContent = currentDocg.soils;
+                        document.getElementById('notes-section').style.display = 'block';
+                        document.getElementById('soils-section').style.display = 'block';
+                        break;
 
-                // Reset visibility
-                soilsSection.style.display = 'block';
-                producersSection.style.display = 'block';
+                    case 'hard':
+                        resultNotesEl.textContent = currentDocg.notes;
+                        resultTechnicalsEl.textContent = currentDocg.technicals;
+                        document.getElementById('notes-section').style.display = 'block';
+                        document.getElementById('technicals-section').style.display = 'block';
+                        break;
+                    
+                    case 'expert':
+                        resultNotesEl.textContent = currentDocg.notes;
+                        resultProducersEl.textContent = currentDocg.producers;
+                        document.getElementById('notes-section').style.display = 'block';
+                        document.getElementById('producers-section').style.display = 'block';
+                        break;
 
-                if (gameMode === 'expert') {
-                    soilsSection.style.display = 'none';
-                } else if (gameMode === 'insane') {
-                    soilsSection.style.display = 'none';
-                    producersSection.style.display = 'none';
+                    case 'insane':
+                        resultNotesEl.textContent = currentDocg.notes;
+                        document.getElementById('notes-section').style.display = 'block';
+
+                        let message = '';
+                        const scorePercentage = roundTotalQuestions > 0 ? (roundCorrectAnswers / roundTotalQuestions) * 100 : 0;
+                        
+                        if (isRoundPerfect) {
+                            message = "Flawless victory! You are a true DOCG Master. Your knowledge is as deep and complex as a Barolo Riserva!";
+                        } else if (scorePercentage > 60) {
+                            message = "Excellent work! You're on the right track. Keep refining your palate and knowledge—you're almost at the top!";
+                        } else {
+                            message = "A good effort! The world of Italian wine is vast. Don't be discouraged. Try visiting the Study Mode to sharpen your skills, then come back for another challenge!";
+                        }
+                        document.getElementById('insane-message-content').textContent = message;
+                        document.getElementById('insane-message-section').style.display = 'block';
+                        break;
                 }
                 
                 if(roundCounter >= MAX_ROUNDS) {
@@ -791,6 +963,7 @@
                 finalScoreEl.textContent = score;
                 finalPerfectRoundsEl.textContent = perfectRounds;
                 gameContainer.classList.add('hidden');
+                resultModal.classList.add('hidden');
                 winModal.classList.remove('hidden');
             }
 
@@ -802,13 +975,9 @@
                 studyModal.classList.remove('hidden');
             }
 
-            /** Closes the study modal and returns to main menu if in game. */
+            /** Closes the study modal. */
             function closeStudyModal() {
                 studyModal.classList.add('hidden');
-                if (!gameContainer.classList.contains('hidden')) {
-                    gameContainer.classList.add('hidden');
-                    welcomeModal.classList.remove('hidden');
-                }
             }
 
             // --- Event Listeners ---
