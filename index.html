@@ -104,25 +104,28 @@
             <p id="question-prompt" class="text-xl font-semibold text-gray-800 mb-2"></p>
             <div id="style-counter-area" class="text-lg font-medium text-gray-600 mb-4"></div>
             <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                </div>
+                <!-- Options will be dynamically inserted here -->
+            </div>
         </div>
         
         <div id="feedback-area" class="mt-6 text-xl font-medium"></div>
 
     </div>
 
+    <!-- Region Select Modal -->
     <div id="region-select-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full text-center">
             <h2 class="font-playfair text-3xl font-bold mb-4">Choose which part of Italy you want to study.</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button class="region-select-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg" data-region-group="northern">Northern Italy</button>
-                <button class="region-select-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg" data-region-group="central">Central Italy</button>
-                <button class="region-select-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg" data-region-group="southern">Southern Italy</button>
-                <button class="region-select-btn bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-4 rounded-lg" data-region-group="all">All of Italy</button>
+            <div class="flex flex-col items-center gap-4 w-full">
+                <button class="region-select-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg w-full max-w-xs" data-region-group="northern">Northern Italy</button>
+                <button class="region-select-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg w-full max-w-xs" data-region-group="central">Central Italy</button>
+                <button class="region-select-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg w-full max-w-xs" data-region-group="southern">Southern Italy</button>
+                <button class="region-select-btn bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-4 rounded-lg w-full max-w-xs" data-region-group="all">All of Italy</button>
             </div>
         </div>
     </div>
 
+    <!-- Difficulty Select Modal -->
     <div id="welcome-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full text-center">
             <h2 class="font-playfair text-3xl font-bold mb-4">Welcome to DOCG Master!</h2>
@@ -138,35 +141,42 @@
         </div>
     </div>
 
+    <!-- Result Modal -->
     <div id="result-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-left overflow-auto max-h-[90vh]">
             <h2 id="result-docg-name" class="font-playfair text-3xl font-bold mb-4"></h2>
             <div class="text-gray-700 space-y-4">
                 
+                <!-- Insane Mode Message -->
                 <div id="insane-message-section" class="hidden p-4 rounded-lg bg-red-50 border border-red-200">
                      <p id="insane-message-content" class="text-center font-medium"></p>
                 </div>
 
+                <!-- Easy Mode Information -->
                 <div id="easy-mode-info-section" class="hidden">
                     <h3 class="font-semibold text-lg mb-2">DOCG Information:</h3>
                     <div id="easy-mode-combined-content" class="text-sm"></div>
                 </div>
 
+                <!-- Notes -->
                 <div id="notes-section" class="hidden">
                     <h3 class="font-semibold text-lg">Notes:</h3>
                     <p id="result-notes" class="text-sm"></p>
                 </div>
 
+                <!-- Soils -->
                 <div id="soils-section" class="hidden">
                     <h3 class="font-semibold text-lg">Principal Soils:</h3>
                     <p id="result-soils" class="text-sm"></p>
                 </div>
                 
+                <!-- Technicals -->
                 <div id="technicals-section" class="hidden">
                     <h3 class="font-semibold text-lg">Technicals:</h3>
                     <p id="result-technicals" class="text-sm"></p>
                 </div>
 
+                <!-- Producers -->
                 <div id="producers-section" class="hidden">
                     <h3 class="font-semibold text-lg">Representative Producers:</h3>
                     <p id="result-producers" class="text-sm"></p>
@@ -177,6 +187,7 @@
         </div>
     </div>
     
+    <!-- Game Over Modal -->
     <div id="win-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
             <h2 class="font-playfair text-4xl font-bold mb-4 text-green-600">Complimenti!</h2>
@@ -187,6 +198,7 @@
         </div>
     </div>
 
+    <!-- Study Modal -->
     <div id="study-modal" class="fixed inset-0 bg-black bg-opacity-70 p-4 sm:p-6 md:p-8 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full h-full flex flex-col p-6">
             <div class="flex justify-between items-center mb-4">
@@ -194,14 +206,17 @@
                 <button id="close-study-modal-btn" class="text-2xl font-bold hover:text-red-600">&times;</button>
             </div>
             <div id="study-content" class="overflow-auto flex-grow">
-                </div>
+                <!-- Database table will be injected here -->
+            </div>
         </div>
     </div>
 
 
+    <!-- This is the database provided by the user, hidden from view -->
     <div id="database" class="hidden">
         <table>
-            </table>
+            <!-- The new database content will be injected here by the script -->
+        </table>
     </div>
 
     <script>
@@ -263,6 +278,12 @@
                 hard:         { parts: 4, sequence: ['region', 'varietals', 'aging', 'soils'] },
                 expert:       { parts: 5, sequence: ['region', 'varietals', 'aging', 'soils', 'technicals'] },
                 insane:       { parts: 6, sequence: ['region', 'varietals', 'aging', 'soils', 'technicals', 'producers'] }
+            };
+
+            const regionGroups = {
+                northern: ['Piemonte', 'Lombardia', 'Friuli-Venezia Giulia', 'Emilia-Romagna', 'Veneto', 'Veneto & Friuli-Venezia Giulia'],
+                central: ['Toscana', 'Marche', 'Abruzzo', 'Umbria', 'Lazio'],
+                southern: ['Campania', 'Calabria', 'Puglia', 'Sicilia', 'Sardegna', 'Basilicata']
             };
 
             // --- NEW DATABASE ---
@@ -582,23 +603,17 @@
                 score = 0;
                 perfectRounds = 0;
                 roundCounter = 0;
-                fullDocgData = parseData(); // Load all data initially
                 
-                // Define region groups
-                const northernRegions = ['Piemonte', 'Lombardia', 'Friuli-Venezia Giulia', 'Emilia-Romagna', 'Veneto', 'Veneto & Friuli-Venezia Giulia'];
-                const centralRegions = ['Toscana', 'Marche', 'Abruzzo', 'Umbria', 'Lazio'];
-                const southernRegions = ['Campania', 'Calabria', 'Puglia', 'Sicilia', 'Sardegna', 'Basilicata'];
-
                 // Filter the main dataset based on the player's choice
                 switch(selectedRegionGroup) {
                     case 'northern':
-                        docgData = fullDocgData.filter(docg => northernRegions.includes(docg.region));
+                        docgData = fullDocgData.filter(docg => regionGroups.northern.includes(docg.region));
                         break;
                     case 'central':
-                        docgData = fullDocgData.filter(docg => centralRegions.includes(docg.region));
+                        docgData = fullDocgData.filter(docg => regionGroups.central.includes(docg.region));
                         break;
                     case 'southern':
-                        docgData = fullDocgData.filter(docg => southernRegions.includes(docg.region));
+                        docgData = fullDocgData.filter(docg => regionGroups.southern.includes(docg.region));
                         break;
                     default: // 'all'
                         docgData = fullDocgData;
@@ -842,7 +857,13 @@
                 let sourceArray = [];
 
                 switch(type) {
-                    case 'region':    sourceArray = allRegions; break;
+                    case 'region':
+                        if (selectedRegionGroup === 'all') {
+                            sourceArray = allRegions;
+                        } else {
+                            sourceArray = regionGroups[selectedRegionGroup] || allRegions;
+                        }
+                        break;
                     case 'soils':     sourceArray = allSoils; break;
                     case 'producers': sourceArray = allProducers; break;
                     case 'varietals': sourceArray = allVarietals; break;
@@ -1054,6 +1075,7 @@
 
             playAgainBtn.addEventListener('click', () => {
                  winModal.classList.add('hidden');
+                 welcomeModal.classList.add('hidden');
                  regionSelectModal.classList.remove('hidden');
             });
 
@@ -1067,8 +1089,8 @@
             studyBtnGame.addEventListener('click', openStudyModal);
             closeStudyModalBtn.addEventListener('click', closeStudyModal);
 
-            // Initial load
-            parseData();
+            // Initial load of all data
+            fullDocgData = parseData();
 
         });
     </script>
